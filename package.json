@@ -7,12 +7,7 @@
     "dev": "npm run parse && vite",
     "build": "npm run parse && vite build",
     "preview": "vite preview",
-    "deploy": "bash deploy.sh",
-    "update": "bash update.sh",
-    "deploy:github": "bash deploy-github.sh",
-    "update:github": "bash update-github.sh",
-    "push": "bash push.sh",
-    "发布": "bash 一键发布.sh"
+    "deploy": "npm run build && echo '使用GitHub Actions自动部署，请推送到pages分支'"
   },
   "dependencies": {
     "react": "^18.2.0",
