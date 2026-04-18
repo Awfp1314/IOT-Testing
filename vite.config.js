@@ -10,6 +10,21 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    // 确保资源路径正确
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
+      }
+    }
+  },
+  // GitHub Pages部署需要base路径
+  base: './',
+  // 确保正确处理路由
+  optimizeDeps: {
+    exclude: ['lucide-react']
   }
 });

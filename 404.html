@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重定向到物联网刷题系统</title>
+  <script>
+    // GitHub Pages SPA重定向
+    const segment = 1;
+    const redirect = () => {
+      const path = window.location.pathname;
+      
+      // 如果不是根路径，重定向到index.html
+      if (path !== '/' && !path.endsWith('.html') && !path.includes('.')) {
+        const newPath = window.location.origin + '/index.html' + window.location.search + window.location.hash;
+        window.location.replace(newPath);
+      }
+    };
+    
+    // 页面加载后立即重定向
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', redirect);
+    } else {
+      redirect();
+    }
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>物联网刷题系统</h1>
+    <p>正在重定向到应用程序...</p>
+    <div class="spinner"></div>
+    <p>如果页面没有自动跳转，请<a href="/index.html" style="color: #ffd700; text-decoration: underline;">点击这里</a></p>
+  </div>
+</body>
+</html>

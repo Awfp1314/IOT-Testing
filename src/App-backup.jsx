@@ -5,53 +5,10 @@ import { QUESTION_BANK } from './questionBank.js';
 import { ExportMenu } from './MenuComponents.jsx';
 import { NotificationMenu } from './NotificationComponent.jsx';
 import { AdminPanel } from './AdminPanel.jsx';
-// 移除纠错和私信功能：不再需要FeedbackButton和ErrorReportModal
+import { FeedbackButton } from './FeedbackComponent.jsx';
+import { ErrorReportModal } from './ErrorReportModal.jsx';
 import { AnnouncementBanner } from './AnnouncementBanner.jsx';
 import * as api from './apiClient.js';
-
-// 右上角通知红点组件
-const MaintenanceNotification = () => {
-  const [showNotification, setShowNotification] = useState(true);
-
-  if (!showNotification) return null;
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setShowNotification(false)}
-        className="relative flex items-center justify-center w-8 h-8 bg-red-100 hover:bg-red-200 rounded-full transition-colors"
-        title="系统维护通知"
-      >
-        <AlertTriangle className="w-5 h-5 text-red-600" />
-        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-      </button>
-      
-      {/* 通知弹窗 */}
-      <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50 animate-in slide-in-from-top-2 fade-in">
-        <div className="p-4">
-          <div className="flex items-start mb-3">
-            <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-            <div>
-              <h4 className="font-bold text-slate-800">系统维护通知</h4>
-              <p className="text-xs text-slate-500 mt-1">此题库管理员已不再进行维护</p>
-            </div>
-          </div>
-          <div className="text-sm text-slate-600 space-y-2">
-            <p>• 登录功能已经移除</p>
-            <p>• 刷题记录会保留到本地</p>
-            <p>• 纠错和私信功能已停用</p>
-          </div>
-          <button
-            onClick={() => setShowNotification(false)}
-            className="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium py-2 rounded-lg transition-colors"
-          >
-            我知道了
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // 默认题库（作为备用）
 const DEFAULT_QUESTION_BANK = QUESTION_BANK.length > 0 ? QUESTION_BANK : [
@@ -186,74 +143,10 @@ const ExamCountdown = React.memo(() => {
   return (
     <div className="hidden md:flex items-center text-xs font-mono bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-100 shadow-sm">
       <CalendarClock className="w-3.5 h-3.5 mr-2 text-indigo-500" />
+      <span className="mr-2 font-bold text-slate-600">理论考试倒计时:</span>
       <span className="font-bold text-indigo-700">
         {countdown.days}天 {countdown.hours}时 {countdown.minutes}分 {countdown.seconds}秒
       </span>
-    </div>
-  );
-});
-
-// 独立的答题卡组件 - 全部展开布局，无滚动条（类似学习通考试）
-const AnswerSheet = React.memo(({ questions, userAnswers, currentIndex, onJumpTo, quizMode }) => {
-  // 根据题目数量动态调整列数 - 减少列数使按钮更大
-  const getGridCols = () => {
-    if (questions.length <= 15) return "grid-cols-5";
-    if (questions.length <= 30) return "grid-cols-6";
-    if (questions.length <= 45) return "grid-cols-7";
-    if (questions.length <= 60) return "grid-cols-8";
-    if (questions.length <= 80) return "grid-cols-9";
-    return "grid-cols-10";
-  };
-  
-  return (
-    <div className="sticky top-20">
-      <h3 className="font-bold text-slate-800 mb-3 flex items-center">
-        <span className="text-base">答题卡</span>
-        <span className="ml-2 text-xs text-slate-500">({Object.keys(userAnswers).filter(k => !k.includes('_confirmed')).length}/{questions.length})</span>
-      </h3>
-      <div className={`grid ${getGridCols()} gap-2`}>
-        {questions.map((q, index) => {
-          const isAnswered = userAnswers[q.id] !== undefined;
-          const isCurrent = index === currentIndex;
-          
-          // 判断答题是否正确(只在已答题且非当前题时显示)
-          let isCorrect = false;
-          if (isAnswered && !isCurrent) {
-            const userAns = userAnswers[q.id];
-            if (q.type === 'multiple') {
-              // 多选题:比较数组
-              const correctAnswers = q.correctAnswer.split(',').map(a => a.trim()).sort();
-              const userAnswersArray = Array.isArray(userAns) ? userAns.sort() : [];
-              isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
-            } else {
-              // 单选题:直接比较
-              isCorrect = userAns === q.correctAnswer;
-            }
-          }
-          
-          // 模拟考模式下不显示正确/错误颜色
-          const showCorrectness = quizMode !== 'exam';
-          
-          return (
-            <button
-              key={q.id}
-              onClick={() => onJumpTo(index)}
-              className={`w-full h-10 rounded-lg font-medium text-sm transition-all flex items-center justify-center ${
-                isCurrent
-                  ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
-                  : isAnswered
-                  ? (showCorrectness
-                      ? (isCorrect ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200')
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200')
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-              title={`第 ${index + 1} 题`}
-            >
-              {index + 1}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 });
@@ -275,7 +168,13 @@ export default function App() {
   const modalContentRef = useRef(null); // 用于闪电刷题弹窗自动滚动
   const saveProgressTimerRef = useRef(null); // 用于跟踪保存进度的定时器
   
-  // 移除登录系统：不再需要currentUser状态
+  // 用户系统状态
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('iot_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   
   // 闪电刷题弹窗相关状态
   const [showInstantModal, setShowInstantModal] = useState(false);
@@ -283,7 +182,9 @@ export default function App() {
   const [isRolling, setIsRolling] = useState(false); // 是否正在播放抽取动画
   const [instantUserAnswer, setInstantUserAnswer] = useState(null); // 闪电模式下的答案
 
-  // 移除纠错弹窗状态
+  // 纠错弹窗状态
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorQuestion, setErrorQuestion] = useState(null);
   
   // 顺序练习选择弹窗状态
   const [showPracticeModal, setShowPracticeModal] = useState(false);
@@ -340,55 +241,45 @@ export default function App() {
     }
   }, [appState]);
 
-  // 订阅全局消息推送
+  // 订阅全局消息推送（GitHub Pages版本：空实现）
   useEffect(() => {
-    const unsubscribe = api.subscribeWebSocket('GLOBAL_MESSAGE', (message) => {
-      if (message.type === 'alert' || message.type === 'warning') {
-        // 警告消息显示为弹窗
-        setGlobalWarning(message);
-      }
-      // 其他类型的消息通过通知系统显示
-    });
-    return unsubscribe;
+    console.log('ℹ️ GitHub Pages版本：全局消息推送已禁用');
+    // 返回空清理函数
+    return () => {};
   }, []);
 
-  // 初始化WebSocket连接和加载题库
+  // 初始化应用（GitHub Pages版本）
   useEffect(() => {
-    // 连接WebSocket（GitHub Pages版本：空实现）
-    api.connectWebSocket(() => {
-      console.log('🔌 GitHub Pages版本：WebSocket连接已禁用');
-    });
+    console.log('🚀 GitHub Pages版本初始化');
     
     // 加载题库
     loadQuestionBank();
     
-    // 移除登录系统：不再需要加载用户进度
+    // GitHub Pages版本：总是尝试加载进度（支持匿名用户）
+    // 先检查是否有已登录用户
+    const userJson = localStorage.getItem('iot_current_user');
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        if (user.phone) {
+          loadUserProgress(user.phone);
+          console.log('🔍 从本地存储恢复用户:', user.username);
+        }
+      } catch (e) {
+        console.error('解析用户数据失败:', e);
+      }
+    } else {
+      // 匿名用户：尝试加载进度
+      loadUserProgress(null);
+      console.log('🔍 以匿名模式加载进度');
+    }
   }, []);
 
-  // 订阅题库更新事件
+  // 订阅题库更新事件（GitHub Pages版本：空实现）
   useEffect(() => {
-    const unsubscribes = [
-      api.subscribeWebSocket('QUESTION_ADDED', (data) => {
-        setMOCK_QUESTION_BANK(prev => [...prev, data.question]);
-        console.log('➕ 题目已添加:', data.question.id);
-      }),
-      api.subscribeWebSocket('QUESTION_UPDATED', (data) => {
-        setMOCK_QUESTION_BANK(prev => prev.map(q => 
-          q.id === data.question.id ? data.question : q
-        ));
-        console.log('✏️ 题目已更新:', data.question.id);
-      }),
-      api.subscribeWebSocket('QUESTION_DELETED', (data) => {
-        setMOCK_QUESTION_BANK(prev => prev.filter(q => q.id !== data.questionId));
-        console.log('🗑️ 题目已删除:', data.questionId);
-      }),
-      api.subscribeWebSocket('QUESTION_BANK_UPDATED', () => {
-        loadQuestionBank();
-        console.log('🔄 题库已全量更新');
-      })
-    ];
-
-    return () => unsubscribes.forEach(unsub => unsub());
+    console.log('ℹ️ GitHub Pages版本：WebSocket订阅已禁用');
+    // 返回空清理函数
+    return () => {};
   }, []);
 
   // 监听闪电刷题答案，自动滚动到底部
@@ -468,16 +359,63 @@ export default function App() {
         // 如果答错了，添加进去
         newSet.add(qId);
       }
-      // 移除登录系统：不再需要保存到服务器
+      // 保存到服务器
+      saveProgressToServer(answeredIds, newSet);
       return newSet; // 返回新 Set，触发 Effect 同步存储
     });
   };
 
-  // 移除纠错功能：不再需要handleFeedback函数
+  // 处理题目反馈 - 打开纠错弹窗
+  const handleFeedback = (q) => {
+    setErrorQuestion(q);
+    setShowErrorModal(true);
+  };
 
   // --- 用户系统功能 ---
-  // 移除登录系统：不再需要登录相关函数
+  const ADMIN_ACCOUNT = { phone: '19312985136', password: 'Wjj19312985136...' };
   
+  // 登录函数（GitHub Pages版本）
+  const handleLogin = async (phone, password) => {
+    const result = await api.loginUser(phone, password);
+    
+    if (result.success) {
+      const loginUser = { ...result.user, loginTime: new Date().toISOString() };
+      delete loginUser.password; // 不在currentUser中存储密码
+      setCurrentUser(loginUser);
+      localStorage.setItem('iot_current_user', JSON.stringify(loginUser));
+      
+      console.log('✅ 用户登录成功（本地模式）:', loginUser.username);
+      
+      // 加载用户答题进度
+      await loadUserProgress(loginUser.phone);
+      
+      setAppState('welcome');
+    }
+    
+    return result;
+  };
+
+  // 加载用户答题进度（GitHub Pages版本）
+  const loadUserProgress = async (userId) => {
+    // GitHub Pages版本：使用本地存储，userId可为空
+    const targetUserId = userId || (currentUser ? currentUser.phone : null);
+    const result = await api.getUserProgress(targetUserId);
+    
+    if (result.success && result.progress) {
+      setAnsweredIds(new Set(result.progress.answeredIds || []));
+      setWrongQuestionIds(new Set(result.progress.wrongIds || []));
+      console.log('✅ 从本地存储加载进度:', {
+        answered: result.progress.answeredIds?.length || 0,
+        wrong: result.progress.wrongIds?.length || 0
+      });
+    } else {
+      // 如果没有进度数据，初始化空集合
+      setAnsweredIds(new Set());
+      setWrongQuestionIds(new Set());
+      console.log('ℹ️ 无历史进度数据，已初始化空集合');
+    }
+  };
+
   // 复制QQ号到剪贴板
   const copyQQNumber = () => {
     const qqNumber = '1849619997';
@@ -499,7 +437,78 @@ export default function App() {
     });
   };
 
-  // 移除登录系统：不再需要保存进度到服务器
+  // 保存用户答题进度（GitHub Pages版本）
+  const saveProgressToServer = async (newAnsweredIds, newWrongIds) => {
+    // GitHub Pages版本：无论是否有登录用户都保存到本地存储
+    const userId = currentUser ? currentUser.phone : null;
+    
+    try {
+      await api.saveUserProgress(
+        userId,
+        [...newAnsweredIds],
+        [...newWrongIds]
+      );
+      console.log('💾 进度已保存到本地存储:', {
+        answered: newAnsweredIds.size,
+        wrong: newWrongIds.size,
+        userId: userId || 'anonymous'
+      });
+    } catch (error) {
+      console.error('保存进度失败:', error);
+      // 即使保存失败也不影响用户体验
+    }
+  };
+  
+  // 注册函数
+  const handleRegister = async (phone, password, username) => {
+    // 检查是否为管理员账号
+    if (phone === ADMIN_ACCOUNT.phone) {
+      return { success: false, message: '该手机号为系统保留号码' };
+    }
+    
+    const displayName = username || `用户${phone.slice(-4)}`;
+    const avatar = '👤';
+    
+    const result = await api.registerUser(phone, password, displayName, avatar);
+    
+    if (result.success) {
+      // 自动登录
+      const loginUser = { ...result.user };
+      delete loginUser.password;
+      setCurrentUser(loginUser);
+      localStorage.setItem('iot_current_user', JSON.stringify(loginUser));
+      setAppState('welcome');
+    }
+    
+    return result;
+  };
+  
+  // 退出登录
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('iot_current_user');
+    setAppState('welcome');
+    setShowUserMenu(false);
+  };
+  
+  // 更新用户信息
+  const handleUpdateProfile = (username, avatar) => {
+    if (!currentUser) return;
+    
+    const updatedUser = { ...currentUser, username, avatar };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('iot_current_user', JSON.stringify(updatedUser));
+    
+    // 如果不是管理员，更新users表中的数据
+    if (!currentUser.isAdmin) {
+      const users = JSON.parse(localStorage.getItem('iot_users') || '[]');
+      const userIndex = users.findIndex(u => u.phone === currentUser.phone);
+      if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], username, avatar };
+        localStorage.setItem('iot_users', JSON.stringify(users));
+      }
+    }
+  };
 
 
 
@@ -559,19 +568,15 @@ export default function App() {
 
     setQuizMode(mode);
 
-    // 移除登录系统：不再需要通知服务器
+    // 通知服务器用户开始答题
+    if (currentUser) {
+      api.sendWebSocketMessage('STATUS_UPDATE', { 
+        userId: currentUser.phone, 
+        status: 'answering' 
+      });
+    }
 
     if (mode === 'exam') {
-      // 模拟考提示：不保存进度
-      const shouldContinue = window.confirm(
-        '⚠️ 模拟考提示\n\n' +
-        '模拟考为一次性考试，中途退出或刷新页面将丢失所有进度。\n' +
-        '建议在150分钟内连续完成所有题目。\n\n' +
-        '是否开始模拟考？'
-      );
-      
-      if (!shouldContinue) return;
-      
       // 模拟考：每次从头开始，清除之前的进度
       localStorage.removeItem('iot_exam_progress');
       setUserAnswers({});
@@ -667,13 +672,19 @@ export default function App() {
       localStorage.removeItem('iot_exam_progress');
     }
     
-    // 移除登录系统：不再需要通知服务器
+    // 通知服务器用户结束答题，恢复在线状态
+    if (currentUser) {
+      api.sendWebSocketMessage('STATUS_UPDATE', { 
+        userId: currentUser.phone, 
+        status: 'online' 
+      });
+    }
     
     setAppState('welcome');
   };
 
   const handleOptionSelect = (qId, optionId) => {
-    console.log(`[DEBUG] 点击选项: qId=${qId}, optionId=${optionId}, appState=${appState}, quizMode=${quizMode}`);
+    console.log(`[DEBUG] 点击选项: qId=${qId}, optionId=${optionId}, appState=${appState}`);
     if (appState === 'result') return;
 
     // 使用currentQuestions而不是MOCK_QUESTION_BANK，确保数据一致
@@ -706,28 +717,17 @@ export default function App() {
         return result;
       });
     } else {
-      // 单选题逻辑
-      if (quizMode === 'exam') {
-        // 模拟考模式：允许修改答案
-        setUserAnswers(prev => {
-          const newAnswers = { ...prev, [qId]: optionId };
-          console.log(`[DEBUG] 模拟考单选题 qId=${qId}, option=${optionId}, 当前总答题数=${Object.keys(newAnswers).filter(k => !k.includes('_confirmed')).length}`);
-          return newAnswers;
-        });
-        // 模拟考模式下不立即更新错题本，只在提交试卷后更新
-      } else {
-        // 练习模式和错题本模式：选了就不能改（立即显示答案）
-        if (userAnswers[qId]) return;
-        setUserAnswers(prev => {
-          const newAnswers = { ...prev, [qId]: optionId };
-          console.log(`[DEBUG] 练习模式单选题 qId=${qId}, option=${optionId}, 当前总答题数=${Object.keys(newAnswers).filter(k => !k.includes('_confirmed')).length}`);
-          return newAnswers;
-        });
-        
-        // 练习模式立即判断对错
-        const isCorrect = currentQ.correctAnswer === optionId;
-        updateMistakeNotebook(qId, isCorrect);
-      }
+      // 单选题：选了就不能改（练习模式立即显示答案）
+      if (userAnswers[qId]) return;
+      setUserAnswers(prev => {
+        const newAnswers = { ...prev, [qId]: optionId };
+        console.log(`[DEBUG] 单选题 qId=${qId}, option=${optionId}, 当前总答题数=${Object.keys(newAnswers).filter(k => !k.includes('_confirmed')).length}`);
+        return newAnswers;
+      });
+      
+      // 单选题立即判断对错
+      const isCorrect = currentQ.correctAnswer === optionId;
+      updateMistakeNotebook(qId, isCorrect);
     }
     
     markQuestionAsPracticed(qId);
@@ -819,7 +819,7 @@ export default function App() {
 
   // 计算用户统计数据
   const userStats = useMemo(() => {
-    // 移除登录系统：总是显示统计信息
+    if (!currentUser) return null;
     
     const categoryStats = {};
     MOCK_QUESTION_BANK.forEach(q => {
@@ -847,7 +847,7 @@ export default function App() {
       accuracy,
       categoryStats
     };
-  }, [answeredIds, wrongQuestionIds]);
+  }, [currentUser, answeredIds, wrongQuestionIds]);
 
   // --- 组件视图 ---
 
@@ -923,6 +923,54 @@ export default function App() {
     </div>
   );
 
+  // 答题卡组件
+  const AnswerSheet = ({ questions, userAnswers, currentIndex, onJumpTo }) => {
+    return (
+      <div className="bg-white rounded-xl shadow-md border border-slate-100 p-4 sticky top-20">
+        <h3 className="font-bold text-slate-800 mb-3 flex items-center">
+          <span className="text-base">答题卡</span>
+          <span className="ml-2 text-xs text-slate-500">({Object.keys(userAnswers).filter(k => !k.includes('_confirmed')).length}/{questions.length})</span>
+        </h3>
+        <div className="grid grid-cols-5 gap-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
+          {questions.map((q, index) => {
+            const isAnswered = userAnswers[q.id] !== undefined;
+            const isCurrent = index === currentIndex;
+            
+            // 判断答题是否正确(只在已答题且非当前题时显示)
+            let isCorrect = false;
+            if (isAnswered && !isCurrent) {
+              const userAns = userAnswers[q.id];
+              if (q.type === 'multiple') {
+                // 多选题:比较数组
+                const correctAnswers = q.correctAnswer.split(',').map(a => a.trim()).sort();
+                const userAnswersArray = Array.isArray(userAns) ? userAns.sort() : [];
+                isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
+              } else {
+                // 单选题:直接比较
+                isCorrect = userAns === q.correctAnswer;
+              }
+            }
+            
+            return (
+              <button
+                key={q.id}
+                onClick={() => onJumpTo(index)}
+                className={`w-full aspect-square rounded-lg font-medium text-sm transition-all ${
+                  isCurrent
+                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
+                    : isAnswered
+                    ? (isCorrect ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200')
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const QuizView = () => {
     const currentQ = currentQuestions[currentIndex];
@@ -998,15 +1046,15 @@ export default function App() {
           )}
         </div>
 
-            <div className="flex flex-col relative">
-              {/* 题目内容区域 */}
-              <div ref={quizContentRef} className="p-6 md:p-8 flex-1">
+            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col relative max-h-[calc(100vh-250px)]">
+              {/* 可滚动内容区域 */}
+              <div ref={quizContentRef} className="overflow-y-auto p-6 md:p-8 flex-1">
             <div className="flex items-center justify-between mb-5">
                <div className="flex items-center gap-2">
                  <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
                    {currentQ.category}
                  </span>
-                 {wrongQuestionIds.has(currentQ.id) && quizMode !== 'exam' && (
+                 {wrongQuestionIds.has(currentQ.id) && (
                      <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center">
                          <AlertTriangle className="w-3 h-3 mr-1"/> 曾做错
                      </span>
@@ -1045,10 +1093,10 @@ export default function App() {
                   ? (Array.isArray(userAnswer) && userAnswer.includes(opt.id))
                   : userAnswer === opt.id;
                 
-                // 判断是否显示反馈（只在练习模式和错题本模式下显示）
-                const showFeedback = (quizMode === 'practice' || quizMode === 'mistakes') && (
-                  isMultiple ? isConfirmed : userAnswer
-                );
+                // 判断是否显示反馈（单选题选择后，或多选题确认后）
+                const showFeedback = isMultiple 
+                  ? (isConfirmed && (quizMode === 'practice' || quizMode === 'mistakes'))
+                  : (userAnswer && (quizMode === 'practice' || quizMode === 'mistakes'));
 
                 // 如果在练习模式下已选择答案，显示正确/错误样式
                 if (showFeedback) {
@@ -1197,13 +1245,12 @@ export default function App() {
         
           {/* 右侧答题卡 - 仅顺序练习和模拟考显示 */}
           {(quizMode === 'practice' || quizMode === 'exam') && (
-            <div className="w-80 hidden lg:block shrink-0">
-              <AnswerSheet
+            <div className="w-64 hidden lg:block shrink-0">
+              <AnswerSheet 
                 questions={currentQuestions}
                 userAnswers={userAnswers}
                 currentIndex={currentIndex}
                 onJumpTo={jumpToQuestion}
-                quizMode={quizMode}
               />
             </div>
           )}
@@ -1286,18 +1333,14 @@ export default function App() {
           {/* 左侧区域 */}
           <div className="flex items-center gap-4 md:gap-6">
             <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setAppState('welcome')}>
-              <img
-                src="/static/image/tubiao-192.png"
-                alt="图标"
-                className="w-8 h-8 object-contain"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/static/image/tubiao.ico";
-                }}
-              />
-              <span className="font-bold text-base sm:text-xl tracking-tight text-slate-800 whitespace-nowrap">物联网安调题库</span>
+              <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <span className="font-bold text-base sm:text-xl tracking-tight text-slate-800 whitespace-nowrap">IoT Master</span>
             </div>
             
+            {/* 倒计时 */}
+            <ExamCountdown />
           </div>
           
           {/* 右侧区域 */}
@@ -1310,8 +1353,30 @@ export default function App() {
             {/* 导出按钮 */}
             <ExportMenu MOCK_QUESTION_BANK={MOCK_QUESTION_BANK} />
 
-            {/* 右上角通知红点 */}
-            <MaintenanceNotification />
+            {/* 意见反馈 */}
+            <FeedbackButton currentUser={currentUser} />
+
+            {/* 消息通知 */}
+            <NotificationMenu currentUser={currentUser} />
+
+            {/* 用户菜单 */}
+            {currentUser ? (
+              <UserMenu 
+                currentUser={currentUser} 
+                onProfile={() => setAppState('profile')}
+                onAdmin={() => setAppState('admin')}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <button
+                onClick={() => setAppState('login')}
+                className="flex items-center space-x-1 sm:space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-all"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">登录 / 注册</span>
+                <span className="sm:hidden">登录</span>
+              </button>
+            )}
 
             {appState === 'quiz' && (
                 <button onClick={exitQuiz} className="text-sm text-slate-500 hover:text-red-600 font-medium transition-colors whitespace-nowrap">
@@ -1329,7 +1394,9 @@ export default function App() {
         {appState === 'welcome' && <WelcomeView />}
         {appState === 'quiz' && <QuizView />}
         {appState === 'result' && <ResultView />}
-        {/* 移除登录系统：不再需要登录、个人资料和管理面板页面 */}
+        {appState === 'login' && <LoginView handleLogin={handleLogin} handleRegister={handleRegister} setAppState={setAppState} />}
+        {appState === 'profile' && <ProfileView currentUser={currentUser} userStats={userStats} handleUpdateProfile={handleUpdateProfile} setAppState={setAppState} />}
+        {appState === 'admin' && <AdminPanel setAppState={setAppState} MOCK_QUESTION_BANK={MOCK_QUESTION_BANK} answeredIds={answeredIds} wrongQuestionIds={wrongQuestionIds} />}
       </main>
       
       <a 
@@ -1465,7 +1532,17 @@ export default function App() {
         </div>
       )}
 
-      {/* 移除纠错功能：不再需要纠错弹窗 */}
+      {/* 纠错弹窗 */}
+      {showErrorModal && errorQuestion && (
+        <ErrorReportModal
+          question={errorQuestion}
+          currentUser={currentUser}
+          onClose={() => {
+            setShowErrorModal(false);
+            setErrorQuestion(null);
+          }}
+        />
+      )}
 
       {/* 顺序练习选择弹窗 */}
       {showPracticeModal && (
