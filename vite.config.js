@@ -22,7 +22,7 @@ export default defineConfig({
     }
   },
   // GitHub Pages部署需要base路径
-  base: './',
+  base: process.env.NODE_ENV === 'production' ? '/-/' : './',
   // 确保正确处理路由
   optimizeDeps: {
     exclude: ['lucide-react']
