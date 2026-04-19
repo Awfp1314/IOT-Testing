@@ -1287,12 +1287,12 @@ export default function App() {
           <div className="flex items-center gap-4 md:gap-6">
             <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setAppState('welcome')}>
               <img
-                src="/static/image/tubiao-192.png"
+                src={`${import.meta.env.BASE_URL}static/image/tubiao-192.png`}
                 alt="图标"
                 className="w-8 h-8 object-contain"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = "/static/image/tubiao.ico";
+                  e.target.src = `${import.meta.env.BASE_URL}static/image/tubiao.ico`;
                 }}
               />
               <span className="font-bold text-base sm:text-xl tracking-tight text-slate-800 whitespace-nowrap">物联网安调题库</span>
