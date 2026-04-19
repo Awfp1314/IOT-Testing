@@ -27,6 +27,28 @@
 - 📱 **响应式设计** - 支持手机、平板、电脑多端访问
 - 🚀 **快速加载** - 基于 Vite 构建，秒开体验
 
+## 📱 界面预览
+
+### 主界面
+
+![主界面](screenshots/screenshot-home.png)
+
+### 答题界面
+
+![答题界面](screenshots/screenshot-quiz.png)
+
+### 答案解析
+
+![答案解析](screenshots/screenshot-answer.png)
+
+### 成绩统计
+
+![成绩统计](screenshots/screenshot-result.png)
+
+### 移动端适配
+
+![移动端](screenshots/screenshot-mobile.jpg)
+
 ## 🛠️ 技术栈
 
 - **前端框架**: React 18.2
