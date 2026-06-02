@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu, Zap, Layers, BarChart3, AlertTriangle, CalendarClock, Github, Flag, Mail, X, Sparkles, Shuffle, User, BookOpen } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu, Zap, Layers, BarChart3, AlertTriangle, CalendarClock, Github, Flag, Mail, X, Sparkles, Shuffle, User, BookOpen, Send } from 'lucide-react';
 import { QUESTION_BANK } from './questionBank.js';
 // 移除登录系统：不再需要LoginView和ProfileView
 import { ExportMenu } from './MenuComponents.jsx';
@@ -298,7 +298,10 @@ export default function App() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiQuestionText, setAiQuestionText] = useState('');
   const [aiIframeUrl, setAiIframeUrl] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const iframeRef = useRef(null);
+  const aiAbortRef = useRef(null);
 
   // 题库状态（从数据库加载）
   const [MOCK_QUESTION_BANK, setMOCK_QUESTION_BANK] = useState(DEFAULT_QUESTION_BANK);
@@ -856,6 +859,58 @@ export default function App() {
   }, [answeredIds, wrongQuestionIds]);
 
   // --- AI 解析功能 ---
+  const callDifyApi = useCallback(async (queryText, signal) => {
+    const resp = await fetch('https://udify.app/v1/chat-messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer xg0maoDg7kzrcGT0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: {},
+        query: queryText,
+        response_mode: 'streaming',
+        user: `ai-user-${Date.now()}`,
+      }),
+      signal,
+    });
+
+    if (!resp.ok) throw new Error(`API ${resp.status}`);
+    return resp;
+  }, []);
+
+  const parseSSEStream = useCallback(async (response, onChunk, signal) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      if (signal.aborted) { reader.cancel(); break; }
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const json = JSON.parse(line.slice(6));
+          if (json.event === 'message') {
+            onChunk(json.answer || '');
+          } else if (json.event === 'message_end') {
+            return;
+          } else if (json.event === 'error') {
+            throw new Error(json.message || 'stream error');
+          }
+        } catch (e) {
+          if (e.message && e.message !== 'stream error') throw e;
+        }
+      }
+    }
+  }, []);
+
   const compressAndEncode = useCallback(async (input) => {
     try {
       const uint8Array = new TextEncoder().encode(input);
@@ -880,16 +935,40 @@ export default function App() {
   const openAiAnalysis = useCallback(async (question) => {
     const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
     setAiQuestionText(text);
-
-    const url = await buildAiIframeUrl(text);
-    setAiIframeUrl(url);
+    setAiResponse('');
+    setAiIframeUrl('');
+    setAiLoading(true);
     setShowAiModal(true);
-  }, [buildAiIframeUrl]);
+
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+
+    try {
+      const resp = await callDifyApi(text, controller.signal);
+
+      let full = '';
+      await parseSSEStream(resp, (chunk) => {
+        full += chunk;
+        setAiResponse(full);
+      }, controller.signal);
+    } catch (e) {
+      const url = await buildAiIframeUrl(text);
+      setAiIframeUrl(url);
+      setAiResponse('');
+    } finally {
+      if (!controller.signal.aborted) {
+        setAiLoading(false);
+      }
+    }
+  }, [callDifyApi, parseSSEStream, buildAiIframeUrl]);
 
   const closeAiModal = useCallback(() => {
+    if (aiAbortRef.current) aiAbortRef.current.abort();
     setShowAiModal(false);
     setAiQuestionText('');
     setAiIframeUrl('');
+    setAiResponse('');
+    setAiLoading(false);
   }, []);
 
   const copyAiQuestion = useCallback(() => {
@@ -904,6 +983,31 @@ export default function App() {
       document.body.removeChild(ta);
     });
   }, [aiQuestionText]);
+
+  const aiSendFollowUp = useCallback(async (followUpText) => {
+    if (!followUpText.trim()) return;
+    setAiQuestionText(followUpText);
+    setAiResponse('');
+    setAiLoading(true);
+
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+
+    try {
+      const resp = await callDifyApi(followUpText, controller.signal);
+      let full = '';
+      await parseSSEStream(resp, (chunk) => {
+        full += chunk;
+        setAiResponse(full);
+      }, controller.signal);
+    } catch (e) {
+      setAiResponse(prev => prev + '\n\n[请求失败，请重试]');
+    } finally {
+      if (!controller.signal.aborted) {
+        setAiLoading(false);
+      }
+    }
+  }, [callDifyApi, parseSSEStream]);
 
   // --- 组件视图 ---
 
@@ -1610,7 +1714,7 @@ export default function App() {
           >
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
               <div className="flex items-center space-x-2.5">
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className={`w-5 h-5 ${aiLoading ? 'animate-spin' : ''}`} />
                 <span className="font-bold text-base">AI 智能解析</span>
               </div>
               <div className="flex items-center gap-2">
@@ -1630,32 +1734,40 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 bg-white">
-              <iframe
-                ref={iframeRef}
-                src={aiIframeUrl}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="AI 解析助手"
-                allow="microphone"
-                onLoad={() => {
-                  setTimeout(() => {
-                    const iframeEl = iframeRef.current;
-                    if (iframeEl && iframeEl.contentWindow) {
-                      const formats = [
-                        { type: 'dify-chatbot-message', data: { query: aiQuestionText } },
-                        { type: 'dify-chatbot-send', payload: { query: aiQuestionText, inputs: {} } },
-                        { event: 'dify-chatbot-message', data: { query: aiQuestionText } },
-                        { action: 'send-message', message: aiQuestionText },
-                      ];
-                      ['https://udify.app', '*'].forEach(origin => {
-                        formats.forEach(f => {
-                          try { iframeEl.contentWindow.postMessage(f, origin); } catch (e) {}
-                        });
-                      });
-                    }
-                  }, 1200);
-                }}
-              />
+            <div className="flex-1 min-h-0 bg-white relative">
+              {aiIframeUrl ? (
+                <iframe
+                  ref={iframeRef}
+                  src={aiIframeUrl}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="AI 解析助手"
+                  allow="microphone"
+                />
+              ) : aiLoading && !aiResponse ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+                  <p className="text-slate-500 text-sm">AI 正在分析题目...</p>
+                </div>
+              ) : aiResponse ? (
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-slate-700 leading-relaxed">
+                      {aiResponse}
+                    </div>
+                  </div>
+                  {aiLoading && (
+                    <div className="px-6 py-2 text-xs text-indigo-500 animate-pulse">AI 正在输入...</div>
+                  )}
+                  <div className="border-t border-slate-200 p-4 shrink-0">
+                    <FollowUpInput onSend={aiSendFollowUp} disabled={aiLoading} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <p>加载失败，请重试</p>
+                  <button onClick={closeAiModal} className="mt-3 text-indigo-500 hover:underline text-sm">关闭</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1673,4 +1785,42 @@ function FileCode(props) {
       <path d="m14 17 2-2-2-2" />
     </svg>
   )
+}
+
+function FollowUpInput({ onSend, disabled }) {
+  const [value, setValue] = useState('');
+
+  const handleSend = () => {
+    if (disabled || !value.trim()) return;
+    onSend(value);
+    setValue('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex items-end gap-2">
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="继续追问..."
+        rows={1}
+        disabled={disabled}
+        className="flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400"
+      />
+      <button
+        onClick={handleSend}
+        disabled={disabled || !value.trim()}
+        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+      >
+        <Send className="w-4 h-4" />
+      </button>
+    </div>
+  );
 }
