@@ -295,9 +295,8 @@ export default function App() {
   const [globalWarning, setGlobalWarning] = useState(null);
 
   // AI 解析弹窗相关状态
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiQuestionText, setAiQuestionText] = useState('');
-  const [aiQuestionTitle, setAiQuestionTitle] = useState('');
+  const [showAiToast, setShowAiToast] = useState(false);
+  const [aiToastMsg, setAiToastMsg] = useState('');
 
   // 题库状态（从数据库加载）
   const [MOCK_QUESTION_BANK, setMOCK_QUESTION_BANK] = useState(DEFAULT_QUESTION_BANK);
@@ -855,33 +854,53 @@ export default function App() {
   }, [answeredIds, wrongQuestionIds]);
 
   // --- AI 解析功能 ---
-  const openAiAnalysis = (question) => {
-    const title = question.question;
-    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
-    setAiQuestionTitle(title);
-    setAiQuestionText(text);
-    setShowAiModal(true);
-  };
-
-  const closeAiModal = () => {
-    setShowAiModal(false);
-    setAiQuestionText('');
-    setAiQuestionTitle('');
-  };
-
-  const copyAiQuestion = () => {
-    navigator.clipboard.writeText(aiQuestionText).then(() => {
-    }).catch(() => {
-      const textarea = document.createElement('textarea');
-      textarea.value = aiQuestionText;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
+  const copyToClipboard = useCallback((text) => {
+    navigator.clipboard.writeText(text).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
       document.execCommand('copy');
-      document.body.removeChild(textarea);
+      document.body.removeChild(ta);
     });
-  };
+  }, []);
+
+  const showToast = useCallback((msg, duration = 3000) => {
+    setAiToastMsg(msg);
+    setShowAiToast(true);
+    setTimeout(() => setShowAiToast(false), duration);
+  }, []);
+
+  const openAiAnalysis = useCallback((question) => {
+    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
+
+    copyToClipboard(text);
+
+    const bubbleBtn = document.querySelector('#dify-chatbot-bubble-button');
+    if (bubbleBtn) {
+      bubbleBtn.click();
+
+      setTimeout(() => {
+        const bubbleWindow = document.querySelector('#dify-chatbot-bubble-window');
+        const iframe = bubbleWindow ? bubbleWindow.querySelector('iframe') : null;
+        if (iframe && iframe.contentWindow) {
+          const formats = [
+            { type: 'dify-chatbot-message', data: { query: text } },
+            { type: 'dify-chatbot-send', payload: { query: text, inputs: {} } },
+            { event: 'dify-chatbot-message', data: { query: text } },
+            { action: 'send-message', message: text },
+          ];
+          const origins = ['https://udify.app', '*'];
+          formats.forEach(f => origins.forEach(o => {
+            try { iframe.contentWindow.postMessage(f, o); } catch (e) {}
+          }));
+        }
+      }, 800);
+    }
+
+    showToast('题目已复制到剪贴板，正在唤醒 AI 助手...', 4000);
+  }, [copyToClipboard, showToast]);
 
   // --- 组件视图 ---
 
@@ -1579,54 +1598,13 @@ export default function App() {
         </div>
       )}
 
-      {/* AI 解析弹窗 */}
-      {showAiModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeAiModal}>
-          <div className="bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl overflow-hidden ai-modal-enter max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 flex justify-between items-center text-white shrink-0">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-6 h-6" />
-                <span className="font-bold text-lg">AI 智能解析</span>
-              </div>
-              <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 rounded-full p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-indigo-50 border-b border-indigo-100 shrink-0">
-              <p className="text-sm text-slate-700 font-medium line-clamp-2" title={aiQuestionTitle}>{aiQuestionTitle}</p>
-              <button
-                onClick={copyAiQuestion}
-                className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 bg-white px-3 py-1.5 rounded-full border border-indigo-200 hover:bg-indigo-100 transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-                复制题目文本
-              </button>
-            </div>
-
-            <div className="flex-1 min-h-0">
-              <iframe
-                src="https://udify.app/chatbot/xg0maoDg7kzrcGT0"
-                style={{ width: '100%', height: '100%', minHeight: '420px', border: 'none' }}
-                title="AI 解析助手"
-                onLoad={(e) => {
-                  setTimeout(() => {
-                    try {
-                      e.target.contentWindow.postMessage({
-                        type: 'dify-chatbot-send',
-                        data: {
-                          query: aiQuestionText,
-                          inputs: {}
-                        }
-                      }, 'https://udify.app');
-                    } catch (err) {}
-                  }, 800);
-                }}
-              />
-            </div>
+      {/* AI 自动解析 Toast */}
+      {showAiToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] animate-in slide-in-from-top-2 fade-in duration-300">
+          <div className="bg-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+            <span className="text-sm font-medium">{aiToastMsg}</span>
+            <span className="text-indigo-200 text-xs border border-indigo-400/50 rounded px-1.5 py-0.5">Ctrl+V 发送</span>
           </div>
         </div>
       )}
