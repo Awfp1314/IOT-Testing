@@ -955,9 +955,9 @@ export default function App() {
     setAiLoading(false);
     setShowAiModal(true);
 
-    // 由于浏览器 CORS 限制，直接使用 iframe 嵌入 Dify WebApp
-    // 用户需要在 iframe 中手动输入或粘贴题目
-    setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0`);
+    // 添加时间戳参数，确保每次都是新会话，避免加载旧的 conversation_id
+    const timestamp = Date.now();
+    setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0?t=${timestamp}`);
   }, []);
 
   const closeAiModal = useCallback(() => {
@@ -1765,6 +1765,7 @@ export default function App() {
                       style={{ width: '100%', height: '100%', border: 'none' }}
                       title="AI 解析助手"
                       allow="microphone"
+                      key={aiIframeUrl}
                     />
                   </div>
                 </>
