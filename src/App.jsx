@@ -875,7 +875,10 @@ export default function App() {
       signal,
     });
 
-    if (!resp.ok) throw new Error(`API ${resp.status}`);
+    if (!resp.ok) {
+      console.warn(`[AI] API返回非200状态: ${resp.status}, 将使用iframe回退`);
+      throw new Error(`API_${resp.status}`);
+    }
     return resp;
   }, []);
 
@@ -902,10 +905,11 @@ export default function App() {
           } else if (json.event === 'message_end') {
             return;
           } else if (json.event === 'error') {
-            throw new Error(json.message || 'stream error');
+            console.warn('[AI] SSE错误事件:', json.message || json);
+            throw new Error('SSE_ERROR');
           }
         } catch (e) {
-          if (e.message && e.message !== 'stream error') throw e;
+          if (e.message === 'SSE_ERROR') throw e;
         }
       }
     }
@@ -940,25 +944,28 @@ export default function App() {
     setAiLoading(true);
     setShowAiModal(true);
 
-    const controller = new AbortController();
-    aiAbortRef.current = controller;
+    const url = await buildAiIframeUrl(text);
 
     try {
-      const resp = await callDifyApi(text, controller.signal);
+      const controller = new AbortController();
+      aiAbortRef.current = controller;
 
-      let full = '';
-      await parseSSEStream(resp, (chunk) => {
-        full += chunk;
-        setAiResponse(full);
-      }, controller.signal);
-    } catch (e) {
-      const url = await buildAiIframeUrl(text);
-      setAiIframeUrl(url);
-      setAiResponse('');
-    } finally {
-      if (!controller.signal.aborted) {
-        setAiLoading(false);
+      try {
+        const resp = await callDifyApi(text, controller.signal);
+        let full = '';
+        await parseSSEStream(resp, (chunk) => {
+          full += chunk;
+          setAiResponse(full);
+        }, controller.signal);
+      } catch (apiErr) {
+        console.log('[AI] API调用失败, 回退到iframe:', apiErr.message);
+        setAiIframeUrl(url);
       }
+    } catch (e) {
+      console.log('[AI] 整体异常, 回退到iframe:', e.message);
+      setAiIframeUrl(url);
+    } finally {
+      setAiLoading(false);
     }
   }, [callDifyApi, parseSSEStream, buildAiIframeUrl]);
 
