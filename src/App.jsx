@@ -952,38 +952,13 @@ export default function App() {
     const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
     setAiQuestionText(text);
     setAiResponse('');
-    setAiIframeUrl('');
-    setAiConversationId(''); // 重置会话 ID
-    setAiLoading(true);
+    setAiLoading(false);
     setShowAiModal(true);
 
-    // 使用 API 方式调用 Dify
-    const controller = new AbortController();
-    aiAbortRef.current = controller;
-
-    try {
-      const resp = await callDifyApi(text, controller.signal, ''); // 新会话
-      let full = '';
-      await parseSSEStream(
-        resp,
-        (chunk) => {
-          full += chunk;
-          setAiResponse(full);
-        },
-        (convId) => {
-          // 保存会话 ID，用于后续追问
-          setAiConversationId(convId);
-        },
-        controller.signal
-      );
-    } catch (e) {
-      console.error('[AI] API 调用失败:', e);
-      // 失败时显示 iframe 作为备选
-      setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0`);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [callDifyApi, parseSSEStream]);
+    // 由于浏览器 CORS 限制，直接使用 iframe 嵌入 Dify WebApp
+    // 用户需要在 iframe 中手动输入或粘贴题目
+    setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0`);
+  }, []);
 
   const closeAiModal = useCallback(() => {
     if (aiAbortRef.current) aiAbortRef.current.abort();
@@ -1744,35 +1719,55 @@ export default function App() {
           >
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
               <div className="flex items-center space-x-2.5">
-                <Sparkles className={`w-5 h-5 ${aiLoading ? 'animate-spin' : ''}`} />
+                <Sparkles className="w-5 h-5" />
                 <span className="font-bold text-base">AI 智能解析</span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={copyAiQuestion}
-                  className="text-white/80 hover:text-white transition-colors bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
-                  复制题目
-                </button>
-                <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="flex-1 min-h-0 bg-white relative">
+            <div className="flex-1 min-h-0 bg-white relative flex flex-col">
               {aiIframeUrl ? (
-                <iframe
-                  ref={iframeRef}
-                  src={aiIframeUrl}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  title="AI 解析助手"
-                  allow="microphone"
-                />
+                <>
+                  {/* 题目提示区域 */}
+                  <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-800 mb-1">请将以下题目复制到聊天框中：</p>
+                        <div className="bg-white rounded-lg p-3 text-xs text-slate-700 whitespace-pre-wrap break-words border border-amber-200 max-h-32 overflow-y-auto">
+                          {aiQuestionText}
+                        </div>
+                        <button
+                          onClick={copyAiQuestion}
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-md transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                          </svg>
+                          复制题目
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* iframe 区域 */}
+                  <div className="flex-1 min-h-0">
+                    <iframe
+                      ref={iframeRef}
+                      src={aiIframeUrl}
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      title="AI 解析助手"
+                      allow="microphone"
+                    />
+                  </div>
+                </>
               ) : aiLoading && !aiResponse ? (
                 <div className="flex flex-col items-center justify-center h-full">
                   <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
