@@ -294,9 +294,11 @@ export default function App() {
   // 全局警告弹窗状态
   const [globalWarning, setGlobalWarning] = useState(null);
 
-  // AI 解析弹窗相关状态
-  const [showAiToast, setShowAiToast] = useState(false);
-  const [aiToastMsg, setAiToastMsg] = useState('');
+  // AI 全屏弹窗状态
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiQuestionText, setAiQuestionText] = useState('');
+  const [aiIframeUrl, setAiIframeUrl] = useState('');
+  const iframeRef = useRef(null);
 
   // 题库状态（从数据库加载）
   const [MOCK_QUESTION_BANK, setMOCK_QUESTION_BANK] = useState(DEFAULT_QUESTION_BANK);
@@ -854,53 +856,53 @@ export default function App() {
   }, [answeredIds, wrongQuestionIds]);
 
   // --- AI 解析功能 ---
-  const copyToClipboard = useCallback((text) => {
-    navigator.clipboard.writeText(text).catch(() => {
+  const compressAndEncode = useCallback(async (input) => {
+    try {
+      const uint8Array = new TextEncoder().encode(input);
+      const compressedStream = new Response(
+        new Blob([uint8Array]).stream().pipeThrough(new CompressionStream("gzip"))
+      ).arrayBuffer();
+      const compressedUint8Array = new Uint8Array(await compressedStream);
+      let binary = '';
+      compressedUint8Array.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    } catch (e) {
+      return encodeURIComponent(input);
+    }
+  }, []);
+
+  const buildAiIframeUrl = useCallback(async (questionText) => {
+    const encoded = await compressAndEncode(questionText);
+    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encodeURIComponent(encoded)}`;
+  }, [compressAndEncode]);
+
+  const openAiAnalysis = useCallback(async (question) => {
+    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
+    setAiQuestionText(text);
+
+    const url = await buildAiIframeUrl(text);
+    setAiIframeUrl(url);
+    setShowAiModal(true);
+  }, [buildAiIframeUrl]);
+
+  const closeAiModal = useCallback(() => {
+    setShowAiModal(false);
+    setAiQuestionText('');
+    setAiIframeUrl('');
+  }, []);
+
+  const copyAiQuestion = useCallback(() => {
+    if (!aiQuestionText) return;
+    navigator.clipboard.writeText(aiQuestionText).catch(() => {
       const ta = document.createElement('textarea');
-      ta.value = text;
+      ta.value = aiQuestionText;
       ta.style.cssText = 'position:fixed;opacity:0;';
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
     });
-  }, []);
-
-  const showToast = useCallback((msg, duration = 3000) => {
-    setAiToastMsg(msg);
-    setShowAiToast(true);
-    setTimeout(() => setShowAiToast(false), duration);
-  }, []);
-
-  const openAiAnalysis = useCallback((question) => {
-    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
-
-    copyToClipboard(text);
-
-    const bubbleBtn = document.querySelector('#dify-chatbot-bubble-button');
-    if (bubbleBtn) {
-      bubbleBtn.click();
-
-      setTimeout(() => {
-        const bubbleWindow = document.querySelector('#dify-chatbot-bubble-window');
-        const iframe = bubbleWindow ? bubbleWindow.querySelector('iframe') : null;
-        if (iframe && iframe.contentWindow) {
-          const formats = [
-            { type: 'dify-chatbot-message', data: { query: text } },
-            { type: 'dify-chatbot-send', payload: { query: text, inputs: {} } },
-            { event: 'dify-chatbot-message', data: { query: text } },
-            { action: 'send-message', message: text },
-          ];
-          const origins = ['https://udify.app', '*'];
-          formats.forEach(f => origins.forEach(o => {
-            try { iframe.contentWindow.postMessage(f, o); } catch (e) {}
-          }));
-        }
-      }, 800);
-    }
-
-    showToast('题目已复制到剪贴板，正在唤醒 AI 助手...', 4000);
-  }, [copyToClipboard, showToast]);
+  }, [aiQuestionText]);
 
   // --- 组件视图 ---
 
@@ -1598,13 +1600,62 @@ export default function App() {
         </div>
       )}
 
-      {/* AI 自动解析 Toast */}
-      {showAiToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] animate-in slide-in-from-top-2 fade-in duration-300">
-          <div className="bg-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
-            <Sparkles className="w-5 h-5 animate-pulse" />
-            <span className="text-sm font-medium">{aiToastMsg}</span>
-            <span className="text-indigo-200 text-xs border border-indigo-400/50 rounded px-1.5 py-0.5">Ctrl+V 发送</span>
+      {/* AI 全屏解析弹窗 */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/65 backdrop-blur-sm" onClick={closeAiModal}>
+          <div
+            className="bg-white w-[95vw] h-[93vh] max-w-[1100px] max-h-[860px] rounded-2xl shadow-2xl overflow-hidden ai-modal-enter flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
+              <div className="flex items-center space-x-2.5">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-bold text-base">AI 智能解析</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={copyAiQuestion}
+                  className="text-white/80 hover:text-white transition-colors bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                  复制题目
+                </button>
+                <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 bg-white">
+              <iframe
+                ref={iframeRef}
+                src={aiIframeUrl}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="AI 解析助手"
+                allow="microphone"
+                onLoad={() => {
+                  setTimeout(() => {
+                    const iframeEl = iframeRef.current;
+                    if (iframeEl && iframeEl.contentWindow) {
+                      const formats = [
+                        { type: 'dify-chatbot-message', data: { query: aiQuestionText } },
+                        { type: 'dify-chatbot-send', payload: { query: aiQuestionText, inputs: {} } },
+                        { event: 'dify-chatbot-message', data: { query: aiQuestionText } },
+                        { action: 'send-message', message: aiQuestionText },
+                      ];
+                      ['https://udify.app', '*'].forEach(origin => {
+                        formats.forEach(f => {
+                          try { iframeEl.contentWindow.postMessage(f, origin); } catch (e) {}
+                        });
+                      });
+                    }
+                  }, 1200);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
