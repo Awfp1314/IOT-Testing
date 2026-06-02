@@ -3,7 +3,7 @@ import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu,
 import { QUESTION_BANK } from './questionBank.js';
 
 // Dify API 配置 - 请在 Dify 后台 "API 访问" 中生成密钥后替换
-const DIFY_API_KEY = ''; // 留空则使用 iframe 回退，填入形如 app-xxxx 的密钥启用自动发送
+const DIFY_API_KEY = 'app-HF8Fob2lBsnmBxPn6qyipext'; // 填入形如 app-xxxx 的密钥启用自动发送
 const DIFY_API_BASE = 'https://udify.app/v1';
 // 移除登录系统：不再需要LoginView和ProfileView
 import { ExportMenu } from './MenuComponents.jsx';
