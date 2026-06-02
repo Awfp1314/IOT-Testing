@@ -871,10 +871,19 @@ export default function App() {
     }
   }, []);
 
+  const generateUUID = useCallback(() => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }, []);
+
   const buildAiIframeUrl = useCallback(async (questionText) => {
     const encoded = await compressAndEncode(questionText);
-    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encodeURIComponent(encoded)}`;
-  }, [compressAndEncode]);
+    const userId = await compressAndEncode('ai-analyzer');
+    const conversationId = await compressAndEncode(generateUUID());
+    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encodeURIComponent(encoded)}&sys.user_id=${encodeURIComponent(userId)}&sys.conversation_id=${encodeURIComponent(conversationId)}&_t=${Date.now()}`;
+  }, [compressAndEncode, generateUUID]);
 
   const openAiAnalysis = useCallback(async (question) => {
     const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
