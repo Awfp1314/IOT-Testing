@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu, Zap, Layers, BarChart3, AlertTriangle, CalendarClock, Github, Flag, Mail, X, Sparkles, Shuffle, User, BookOpen, Send } from 'lucide-react';
 import { QUESTION_BANK } from './questionBank.js';
+
+// Dify API 配置 - 请在 Dify 后台 "API 访问" 中生成密钥后替换
+const DIFY_API_KEY = ''; // 留空则使用 iframe 回退，填入形如 app-xxxx 的密钥启用自动发送
+const DIFY_API_BASE = 'https://udify.app/v1';
 // 移除登录系统：不再需要LoginView和ProfileView
 import { ExportMenu } from './MenuComponents.jsx';
 import { NotificationMenu } from './NotificationComponent.jsx';
@@ -860,10 +864,12 @@ export default function App() {
 
   // --- AI 解析功能 ---
   const callDifyApi = useCallback(async (queryText, signal) => {
-    const resp = await fetch('https://udify.app/v1/chat-messages', {
+    if (!DIFY_API_KEY) throw new Error('NO_API_KEY');
+
+    const resp = await fetch(`${DIFY_API_BASE}/chat-messages`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer xg0maoDg7kzrcGT0',
+        'Authorization': `Bearer ${DIFY_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -876,7 +882,8 @@ export default function App() {
     });
 
     if (!resp.ok) {
-      console.warn(`[AI] API返回非200状态: ${resp.status}, 将使用iframe回退`);
+      const errText = await resp.text().catch(() => '');
+      console.warn(`[AI] API ${resp.status}: ${errText}`);
       throw new Error(`API_${resp.status}`);
     }
     return resp;
