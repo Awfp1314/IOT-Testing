@@ -303,6 +303,7 @@ export default function App() {
   const [aiIframeUrl, setAiIframeUrl] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiConversationId, setAiConversationId] = useState(''); // 保存会话 ID
   const iframeRef = useRef(null);
   const aiAbortRef = useRef(null);
 
@@ -862,9 +863,12 @@ export default function App() {
   }, [answeredIds, wrongQuestionIds]);
 
   // --- AI 解析功能 ---
-  const callDifyApi = useCallback(async (queryText, signal) => {
-    if (!DIFY_API_KEY) throw new Error('NO_API_KEY');
+  const callDifyApi = useCallback(async (queryText, signal, conversationId = '') => {
+    if (!DIFY_API_KEY) {
+      throw new Error('NO_API_KEY');
+    }
 
+    // 使用正确的 API 端点和参数格式（根据 Dify 文档）
     const resp = await fetch(`${DIFY_API_BASE}/chat-messages`, {
       method: 'POST',
       headers: {
@@ -875,20 +879,22 @@ export default function App() {
         inputs: {},
         query: queryText,
         response_mode: 'streaming',
-        user: `ai-user-${Date.now()}`,
+        conversation_id: conversationId || '', // 使用传入的会话 ID
+        user: `user-${Date.now()}`, // 用户标识
       }),
       signal,
     });
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '');
-      console.warn(`[AI] API ${resp.status}: ${errText}`);
+      console.error(`[AI] API 错误 ${resp.status}:`, errText);
       throw new Error(`API_${resp.status}`);
     }
+
     return resp;
   }, []);
 
-  const parseSSEStream = useCallback(async (response, onChunk, signal) => {
+  const parseSSEStream = useCallback(async (response, onChunk, onConversationId, signal) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -906,6 +912,12 @@ export default function App() {
         if (!line.startsWith('data: ')) continue;
         try {
           const json = JSON.parse(line.slice(6));
+
+          // 提取会话 ID
+          if (json.conversation_id && onConversationId) {
+            onConversationId(json.conversation_id);
+          }
+
           if (json.event === 'message') {
             onChunk(json.answer || '');
           } else if (json.event === 'message_end') {
@@ -936,24 +948,42 @@ export default function App() {
     }
   }, []);
 
-  const buildAiIframeUrl = useCallback(async (questionText) => {
-    // 直接使用 URL 编码，不压缩（Dify 的 sys.query 不支持压缩格式）
-    const encoded = encodeURIComponent(questionText);
-    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encoded}&_t=${Date.now()}`;
-  }, []);
-
   const openAiAnalysis = useCallback(async (question) => {
     const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
     setAiQuestionText(text);
     setAiResponse('');
+    setAiIframeUrl('');
+    setAiConversationId(''); // 重置会话 ID
     setAiLoading(true);
     setShowAiModal(true);
 
-    // 直接使用 iframe 模式，确保题目可见并自动发送
-    const url = await buildAiIframeUrl(text);
-    setAiIframeUrl(url);
-    setAiLoading(false);
-  }, [buildAiIframeUrl]);
+    // 使用 API 方式调用 Dify
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+
+    try {
+      const resp = await callDifyApi(text, controller.signal, ''); // 新会话
+      let full = '';
+      await parseSSEStream(
+        resp,
+        (chunk) => {
+          full += chunk;
+          setAiResponse(full);
+        },
+        (convId) => {
+          // 保存会话 ID，用于后续追问
+          setAiConversationId(convId);
+        },
+        controller.signal
+      );
+    } catch (e) {
+      console.error('[AI] API 调用失败:', e);
+      // 失败时显示 iframe 作为备选
+      setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0`);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [callDifyApi, parseSSEStream]);
 
   const closeAiModal = useCallback(() => {
     if (aiAbortRef.current) aiAbortRef.current.abort();
@@ -961,6 +991,7 @@ export default function App() {
     setAiQuestionText('');
     setAiIframeUrl('');
     setAiResponse('');
+    setAiConversationId(''); // 清除会话 ID
     setAiLoading(false);
   }, []);
 
@@ -987,12 +1018,21 @@ export default function App() {
     aiAbortRef.current = controller;
 
     try {
-      const resp = await callDifyApi(followUpText, controller.signal);
+      // 使用当前会话 ID 进行追问
+      const resp = await callDifyApi(followUpText, controller.signal, aiConversationId);
       let full = '';
-      await parseSSEStream(resp, (chunk) => {
-        full += chunk;
-        setAiResponse(full);
-      }, controller.signal);
+      await parseSSEStream(
+        resp,
+        (chunk) => {
+          full += chunk;
+          setAiResponse(full);
+        },
+        (convId) => {
+          // 更新会话 ID（通常不变，但保险起见）
+          if (convId) setAiConversationId(convId);
+        },
+        controller.signal
+      );
     } catch (e) {
       setAiResponse(prev => prev + '\n\n[请求失败，请重试]');
     } finally {
@@ -1000,7 +1040,7 @@ export default function App() {
         setAiLoading(false);
       }
     }
-  }, [callDifyApi, parseSSEStream]);
+  }, [callDifyApi, parseSSEStream, aiConversationId]);
 
   // --- 组件视图 ---
 
