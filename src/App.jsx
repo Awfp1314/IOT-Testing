@@ -29,7 +29,7 @@ const MaintenanceNotification = () => {
         <AlertTriangle className="w-5 h-5 text-red-600" />
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
       </button>
-      
+
       {/* 通知弹窗 */}
       <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50 animate-in slide-in-from-top-2 fade-in">
         <div className="p-4">
@@ -208,7 +208,7 @@ const AnswerSheet = React.memo(({ questions, userAnswers, currentIndex, onJumpTo
     if (questions.length <= 80) return "grid-cols-9";
     return "grid-cols-10";
   };
-  
+
   return (
     <div className="sticky top-20">
       <h3 className="font-bold text-slate-800 mb-3 flex items-center">
@@ -219,7 +219,7 @@ const AnswerSheet = React.memo(({ questions, userAnswers, currentIndex, onJumpTo
         {questions.map((q, index) => {
           const isAnswered = userAnswers[q.id] !== undefined;
           const isCurrent = index === currentIndex;
-          
+
           // 判断答题是否正确(只在已答题且非当前题时显示)
           let isCorrect = false;
           if (isAnswered && !isCurrent) {
@@ -234,23 +234,22 @@ const AnswerSheet = React.memo(({ questions, userAnswers, currentIndex, onJumpTo
               isCorrect = userAns === q.correctAnswer;
             }
           }
-          
+
           // 模拟考模式下不显示正确/错误颜色
           const showCorrectness = quizMode !== 'exam';
-          
+
           return (
             <button
               key={q.id}
               onClick={() => onJumpTo(index)}
-              className={`w-full h-10 rounded-lg font-medium text-sm transition-all flex items-center justify-center ${
-                isCurrent
-                  ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
-                  : isAnswered
+              className={`w-full h-10 rounded-lg font-medium text-sm transition-all flex items-center justify-center ${isCurrent
+                ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
+                : isAnswered
                   ? (showCorrectness
-                      ? (isCorrect ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200')
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200')
+                    ? (isCorrect ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200')
+                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200')
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
               title={`第 ${index + 1} 题`}
             >
               {index + 1}
@@ -278,9 +277,9 @@ export default function App() {
   const [timeLeft, setTimeLeft] = useState(0);
   const modalContentRef = useRef(null); // 用于闪电刷题弹窗自动滚动
   const saveProgressTimerRef = useRef(null); // 用于跟踪保存进度的定时器
-  
+
   // 移除登录系统：不再需要currentUser状态
-  
+
   // 闪电刷题弹窗相关状态
   const [showInstantModal, setShowInstantModal] = useState(false);
   const [instantQuestion, setInstantQuestion] = useState(null); // 当前闪电题目
@@ -288,13 +287,13 @@ export default function App() {
   const [instantUserAnswer, setInstantUserAnswer] = useState(null); // 闪电模式下的答案
 
   // 移除纠错弹窗状态
-  
+
   // 顺序练习选择弹窗状态
   const [showPracticeModal, setShowPracticeModal] = useState(false);
-  
+
   // 复制QQ提示状态
   const [showCopyToast, setShowCopyToast] = useState(false);
-  
+
   // 全局警告弹窗状态
   const [globalWarning, setGlobalWarning] = useState(null);
 
@@ -315,11 +314,11 @@ export default function App() {
   const loadQuestionBank = async () => {
     setIsLoadingQuestions(true);
     const result = await api.getAllQuestions();
-    
+
     if (result.success && result.questions && result.questions.length > 0) {
       setMOCK_QUESTION_BANK(result.questions);
       console.log(`📚 从数据库加载了 ${result.questions.length} 道题目`);
-      
+
       // 检查数据是否需要更新(对比第一题的type)
       const dbFirstQ = result.questions.find(q => q.id === 343);
       const localFirstQ = DEFAULT_QUESTION_BANK.find(q => q.id === 343);
@@ -342,7 +341,7 @@ export default function App() {
         console.log(`✅ ${importResult.message}`);
       }
     }
-    
+
     setIsLoadingQuestions(false);
   };
 
@@ -371,10 +370,10 @@ export default function App() {
     api.connectWebSocket(() => {
       console.log('🔌 GitHub Pages版本：WebSocket连接已禁用');
     });
-    
+
     // 加载题库
     loadQuestionBank();
-    
+
     // 移除登录系统：不再需要加载用户进度
   }, []);
 
@@ -386,7 +385,7 @@ export default function App() {
         console.log('➕ 题目已添加:', data.question.id);
       }),
       api.subscribeWebSocket('QUESTION_UPDATED', (data) => {
-        setMOCK_QUESTION_BANK(prev => prev.map(q => 
+        setMOCK_QUESTION_BANK(prev => prev.map(q =>
           q.id === data.question.id ? data.question : q
         ));
         console.log('✏️ 题目已更新:', data.question.id);
@@ -408,9 +407,9 @@ export default function App() {
   useEffect(() => {
     if (instantUserAnswer && modalContentRef.current) {
       setTimeout(() => {
-        modalContentRef.current.scrollTo({ 
-          top: modalContentRef.current.scrollHeight, 
-          behavior: 'smooth' 
+        modalContentRef.current.scrollTo({
+          top: modalContentRef.current.scrollHeight,
+          behavior: 'smooth'
         });
       }, 100);
     }
@@ -454,7 +453,7 @@ export default function App() {
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-  
+
   const markQuestionAsPracticed = (qId) => {
     if (!answeredIds.has(qId)) {
       const newSet = new Set(answeredIds);
@@ -490,7 +489,7 @@ export default function App() {
 
   // --- 用户系统功能 ---
   // 移除登录系统：不再需要登录相关函数
-  
+
   // 复制QQ号到剪贴板
   const copyQQNumber = () => {
     const qqNumber = '1849619997';
@@ -526,14 +525,14 @@ export default function App() {
   const startRolling = () => {
     setIsRolling(true);
     setInstantUserAnswer(null);
-    
+
     let rolls = 0;
-    const maxRolls = 15; 
+    const maxRolls = 15;
     const interval = setInterval(() => {
       const randomIdx = Math.floor(Math.random() * MOCK_QUESTION_BANK.length);
       setInstantQuestion(MOCK_QUESTION_BANK[randomIdx]);
       rolls++;
-      
+
       if (rolls >= maxRolls) {
         clearInterval(interval);
         setIsRolling(false);
@@ -543,9 +542,9 @@ export default function App() {
 
   const handleInstantSelect = (optionId) => {
     if (isRolling || instantUserAnswer) return;
-    
+
     setInstantUserAnswer(optionId);
-    
+
     if (instantQuestion) {
       markQuestionAsPracticed(instantQuestion.id);
       const isCorrect = instantQuestion.correctAnswer === optionId;
@@ -582,9 +581,9 @@ export default function App() {
         '建议在150分钟内连续完成所有题目。\n\n' +
         '是否开始模拟考？'
       );
-      
+
       if (!shouldContinue) return;
-      
+
       // 模拟考：每次从头开始，清除之前的进度
       localStorage.removeItem('iot_exam_progress');
       setUserAnswers({});
@@ -620,7 +619,7 @@ export default function App() {
   // 开始顺序练习（重新或继续）
   const startPracticeQuiz = (continueFromSaved) => {
     setShowPracticeModal(false);
-    
+
     if (continueFromSaved) {
       // 继续答题：从上次进度继续
       const savedProgress = localStorage.getItem('iot_practice_progress');
@@ -638,7 +637,7 @@ export default function App() {
       setCurrentIndex(0);
       setUserAnswers({});
     }
-    
+
     setCurrentQuestions(MOCK_QUESTION_BANK);
     setTimeLeft(0);
     setAppState('quiz');
@@ -679,9 +678,9 @@ export default function App() {
       // 模拟考：清除进度
       localStorage.removeItem('iot_exam_progress');
     }
-    
+
     // 移除登录系统：不再需要通知服务器
-    
+
     setAppState('welcome');
   };
 
@@ -696,24 +695,24 @@ export default function App() {
       return;
     }
     console.log(`[DEBUG] 题目类型=${currentQ.type}, 已确认=${userAnswers[qId + '_confirmed']}`);
-    
+
     if (currentQ.type === 'multiple') {
       // 多选题：已确认后不能修改
       if (userAnswers[qId + '_confirmed']) {
         console.log('[DEBUG] 多选题已确认，阻止修改');
         return;
       }
-      
+
       // 切换选项
       setUserAnswers(prev => {
         const current = prev[qId] || [];
         const isArray = Array.isArray(current);
         const currentArray = isArray ? current : [];
-        
+
         const newAnswers = currentArray.includes(optionId)
           ? currentArray.filter(id => id !== optionId)  // 取消选择
           : [...currentArray, optionId];  // 添加选择
-        
+
         const result = { ...prev, [qId]: newAnswers };
         console.log(`[DEBUG] 多选题 qId=${qId}, 选项=${optionId}, 当前已选=${newAnswers.join(',')}, 总答题数=${Object.keys(result).filter(k => !k.includes('_confirmed')).length}`);
         return result;
@@ -736,13 +735,13 @@ export default function App() {
           console.log(`[DEBUG] 练习模式单选题 qId=${qId}, option=${optionId}, 当前总答题数=${Object.keys(newAnswers).filter(k => !k.includes('_confirmed')).length}`);
           return newAnswers;
         });
-        
+
         // 练习模式立即判断对错
         const isCorrect = currentQ.correctAnswer === optionId;
         updateMistakeNotebook(qId, isCorrect);
       }
     }
-    
+
     markQuestionAsPracticed(qId);
   };
 
@@ -754,14 +753,14 @@ export default function App() {
       return;
     }
     const userAnswer = userAnswers[qId] || [];
-    
+
     // 判断答案是否正确
     const correctAnswers = currentQ.correctAnswer.split(',').map(a => a.trim()).sort();
     const userAnswersArray = Array.isArray(userAnswer) ? userAnswer.sort() : [];
     const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
-    
+
     updateMistakeNotebook(qId, isCorrect);
-    
+
     // 标记为已确认（防止再次修改）
     setUserAnswers(prev => ({
       ...prev,
@@ -771,7 +770,7 @@ export default function App() {
 
   const submitQuiz = () => {
     setAppState('result');
-    
+
     // 提交时判断所有多选题
     currentQuestions.forEach(q => {
       if (q.type === 'multiple' && !userAnswers[q.id + '_confirmed']) {
@@ -804,11 +803,11 @@ export default function App() {
   const resultStats = useMemo(() => {
     if (appState !== 'result') return { score: 0 };
     let correctCount = 0;
-    
+
     currentQuestions.forEach(q => {
       const userAnswer = userAnswers[q.id];
       let isCorrect = false;
-      
+
       if (q.type === 'multiple') {
         // 多选题：比较数组
         const correctAnswers = q.correctAnswer.split(',').map(a => a.trim()).sort();
@@ -818,10 +817,10 @@ export default function App() {
         // 单选题：直接比较
         isCorrect = userAnswer === q.correctAnswer;
       }
-      
+
       if (isCorrect) correctCount++;
     });
-    
+
     return {
       score: Math.round((correctCount / currentQuestions.length) * 100),
       correctCount,
@@ -833,7 +832,7 @@ export default function App() {
   // 计算用户统计数据
   const userStats = useMemo(() => {
     // 移除登录系统：总是显示统计信息
-    
+
     const categoryStats = {};
     MOCK_QUESTION_BANK.forEach(q => {
       if (!categoryStats[q.category]) {
@@ -847,11 +846,11 @@ export default function App() {
         }
       }
     });
-    
+
     const totalAnswered = answeredIds.size;
     const totalCorrect = Array.from(answeredIds).filter(id => !wrongQuestionIds.has(id)).length;
     const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
-    
+
     return {
       totalQuestions: MOCK_QUESTION_BANK.length,
       totalAnswered,
@@ -938,43 +937,23 @@ export default function App() {
   }, []);
 
   const buildAiIframeUrl = useCallback(async (questionText) => {
-    const encoded = await compressAndEncode(questionText);
-    const userId = await compressAndEncode(`ai-user-${Date.now()}`);
-    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encodeURIComponent(encoded)}&sys.user_id=${encodeURIComponent(userId)}&_t=${Date.now()}`;
-  }, [compressAndEncode]);
+    // 直接使用 URL 编码，不压缩（Dify 的 sys.query 不支持压缩格式）
+    const encoded = encodeURIComponent(questionText);
+    return `https://udify.app/chatbot/xg0maoDg7kzrcGT0?sys.query=${encoded}&_t=${Date.now()}`;
+  }, []);
 
   const openAiAnalysis = useCallback(async (question) => {
     const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
     setAiQuestionText(text);
     setAiResponse('');
-    setAiIframeUrl('');
     setAiLoading(true);
     setShowAiModal(true);
 
+    // 直接使用 iframe 模式，确保题目可见并自动发送
     const url = await buildAiIframeUrl(text);
-
-    try {
-      const controller = new AbortController();
-      aiAbortRef.current = controller;
-
-      try {
-        const resp = await callDifyApi(text, controller.signal);
-        let full = '';
-        await parseSSEStream(resp, (chunk) => {
-          full += chunk;
-          setAiResponse(full);
-        }, controller.signal);
-      } catch (apiErr) {
-        console.log('[AI] API调用失败, 回退到iframe:', apiErr.message);
-        setAiIframeUrl(url);
-      }
-    } catch (e) {
-      console.log('[AI] 整体异常, 回退到iframe:', e.message);
-      setAiIframeUrl(url);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [callDifyApi, parseSSEStream, buildAiIframeUrl]);
+    setAiIframeUrl(url);
+    setAiLoading(false);
+  }, [buildAiIframeUrl]);
 
   const closeAiModal = useCallback(() => {
     if (aiAbortRef.current) aiAbortRef.current.abort();
@@ -1033,7 +1012,7 @@ export default function App() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 w-full max-w-4xl px-3 sm:px-4">
-        <button 
+        <button
           onClick={() => startQuiz('practice')}
           className="group p-4 sm:p-6 bg-white border border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-lg transition-all text-left flex flex-col h-full active:scale-95"
         >
@@ -1045,7 +1024,7 @@ export default function App() {
           <p className="text-xs sm:text-sm text-slate-500 mt-2 opacity-80">按顺序练习所有题目，无时间限制。</p>
         </button>
 
-        <button 
+        <button
           onClick={() => startQuiz('exam')}
           className="group p-4 sm:p-6 bg-white border border-slate-200 rounded-xl hover:border-purple-500 hover:shadow-lg transition-all text-left flex flex-col h-full active:scale-95"
         >
@@ -1057,7 +1036,7 @@ export default function App() {
           <p className="text-xs sm:text-sm text-slate-500 mt-2 opacity-80">随机抽取 100 题，限时 150 分钟。</p>
         </button>
 
-        <button 
+        <button
           onClick={() => startQuiz('instant')}
           className="group p-4 sm:p-6 bg-orange-50 border border-orange-200 rounded-xl hover:border-orange-500 hover:shadow-lg hover:bg-orange-100 transition-all text-left flex flex-col h-full relative overflow-hidden active:scale-95"
         >
@@ -1070,22 +1049,22 @@ export default function App() {
           <p className="text-xs sm:text-sm text-orange-800 mt-2 opacity-80 relative z-10">随机抽取，动画开箱，即刻开练。</p>
         </button>
 
-        <button 
+        <button
           onClick={() => startQuiz('mistakes')}
           disabled={wrongQuestionIds.size === 0}
           className={`group p-6 border rounded-xl transition-all text-left flex flex-col h-full relative overflow-hidden
-            ${wrongQuestionIds.size > 0 
-              ? 'bg-red-50 border-red-200 hover:border-red-500 hover:shadow-lg hover:bg-red-100 cursor-pointer' 
+            ${wrongQuestionIds.size > 0
+              ? 'bg-red-50 border-red-200 hover:border-red-500 hover:shadow-lg hover:bg-red-100 cursor-pointer'
               : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'}`}
         >
           <div className="flex items-center justify-between mb-3">
             <AlertTriangle className={`w-8 h-8 ${wrongQuestionIds.size > 0 ? 'text-red-500' : 'text-slate-400'}`} />
             {wrongQuestionIds.size > 0 ? (
-                <span className="bg-red-200 text-red-800 text-xs font-bold px-2 py-1 rounded flex items-center">
-                    {wrongQuestionIds.size} 题待消灭
-                </span>
+              <span className="bg-red-200 text-red-800 text-xs font-bold px-2 py-1 rounded flex items-center">
+                {wrongQuestionIds.size} 题待消灭
+              </span>
             ) : (
-                <span className="bg-slate-200 text-slate-500 text-xs font-bold px-2 py-1 rounded">暂无错题</span>
+              <span className="bg-slate-200 text-slate-500 text-xs font-bold px-2 py-1 rounded">暂无错题</span>
             )}
           </div>
           <h3 className={`font-bold text-lg ${wrongQuestionIds.size > 0 ? 'text-red-900' : 'text-slate-500'}`}>智能错题本</h3>
@@ -1132,12 +1111,12 @@ export default function App() {
         debouncedSaveProgress();
       }
     };
-    
+
     return (
       <div className="w-full">
         {/* 返回按钮 - 左上角 */}
         <div className="mb-4">
-          <button 
+          <button
             onClick={exitQuiz}
             className="flex items-center space-x-2 text-slate-600 hover:text-indigo-600 transition-colors group"
           >
@@ -1151,233 +1130,230 @@ export default function App() {
           {/* 左侧题目区域 */}
           <div className="flex-1 min-w-0">
             <div className="bg-white shadow-sm rounded-xl p-4 mb-6 flex justify-between items-center sticky top-4 z-10 border border-slate-100">
-          {quizMode === 'mistakes' ? (
-             <div className="flex items-center text-red-600 font-bold">
-               <AlertTriangle className="w-5 h-5 mr-2" /> 错题攻坚 ({currentIndex + 1}/{currentQuestions.length})
-             </div>
-          ) : (
-            <div className="flex items-center space-x-4 flex-1">
-              <span className="text-slate-500 text-sm font-medium">题目 {currentIndex + 1} / {currentQuestions.length}</span>
-              <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
-              </div>
+              {quizMode === 'mistakes' ? (
+                <div className="flex items-center text-red-600 font-bold">
+                  <AlertTriangle className="w-5 h-5 mr-2" /> 错题攻坚 ({currentIndex + 1}/{currentQuestions.length})
+                </div>
+              ) : (
+                <div className="flex items-center space-x-4 flex-1">
+                  <span className="text-slate-500 text-sm font-medium">题目 {currentIndex + 1} / {currentQuestions.length}</span>
+                  <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {quizMode === 'exam' && (
+                <div className={`flex items-center space-x-2 font-mono text-lg font-bold ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>
+                  <Clock className="w-5 h-5" />
+                  <span>{formatTime(timeLeft)}</span>
+                </div>
+              )}
             </div>
-          )}
-          
-          {quizMode === 'exam' && (
-            <div className={`flex items-center space-x-2 font-mono text-lg font-bold ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>
-              <Clock className="w-5 h-5" />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
-          )}
-        </div>
 
             <div className="flex flex-col relative">
               {/* 题目内容区域 */}
               <div ref={quizContentRef} className="p-6 md:p-8 flex-1">
-            <div className="flex items-center justify-between mb-5">
-               <div className="flex items-center gap-2">
-                 <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-                   {currentQ.category}
-                 </span>
-                 {wrongQuestionIds.has(currentQ.id) && quizMode !== 'exam' && (
-                     <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center">
-                         <AlertTriangle className="w-3 h-3 mr-1"/> 曾做错
-                     </span>
-                 )}
-               </div>
-               <div className="flex items-center gap-2">
-                 <button 
-                   onClick={() => openAiAnalysis(currentQ)}
-                   className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full"
-                   title="AI 智能解析本题"
-                 >
-                   <Sparkles className="w-4 h-4" /> AI 解析
-                 </button>
-                 <button 
-                   onClick={() => handleFeedback(currentQ)}
-                   className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs font-medium"
-                   title="题目有误？点击反馈"
-                 >
-                   <Flag className="w-4 h-4" /> 纠错
-                 </button>
-               </div>
-            </div>
-            
-            <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed mb-8">
-              {currentQ.type === 'multiple' && (
-                <span className="inline-block bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-lg mr-3">
-                  多选题
-                </span>
-              )}
-              {currentQ.question}
-            </h2>
-
-            <div className="space-y-3">
-              {currentQ.options.map((opt) => {
-                let containerClass = "border-slate-200 hover:bg-slate-50 text-slate-600";
-                let iconClass = "bg-slate-100 text-slate-500";
-                
-                // 多选题和单选题的判断逻辑
-                const isMultiple = currentQ.type === 'multiple';
-                const isConfirmed = userAnswers[currentQ.id + '_confirmed'];
-                const correctAnswers = isMultiple ? currentQ.correctAnswer.split(',').map(a => a.trim()) : [currentQ.correctAnswer];
-                
-                // 判断当前选项是否被选中
-                const isSelected = isMultiple 
-                  ? (Array.isArray(userAnswer) && userAnswer.includes(opt.id))
-                  : userAnswer === opt.id;
-                
-                // 判断是否显示反馈（只在练习模式和错题本模式下显示）
-                const showFeedback = (quizMode === 'practice' || quizMode === 'mistakes') && (
-                  isMultiple ? isConfirmed : userAnswer
-                );
-
-                // 如果在练习模式下已选择答案，显示正确/错误样式
-                if (showFeedback) {
-                  if (correctAnswers.includes(opt.id)) {
-                    containerClass = "border-green-500 bg-green-50 text-green-800";
-                    iconClass = "bg-green-500 text-white";
-                  } else if (isSelected) {
-                    containerClass = "border-red-500 bg-red-50 text-red-800";
-                    iconClass = "bg-red-500 text-white";
-                  } else {
-                    containerClass = "opacity-50 border-slate-100";
-                  }
-                } else if (isSelected) {
-                  containerClass = "border-indigo-500 bg-indigo-50 text-indigo-700";
-                  iconClass = "bg-indigo-500 text-white";
-                }
-
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={(e) => {
-                      console.log(`[DEBUG] 按钮点击事件触发: opt.id=${opt.id}, disabled=${showFeedback}, 题型=${currentQ.type}`);
-                      e.stopPropagation();
-                      handleOptionSelect(currentQ.id, opt.id);
-                    }}
-                    disabled={showFeedback}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${containerClass} ${showFeedback ? 'cursor-default' : 'cursor-pointer'}`}
-                  >
-                    <div className="flex items-center">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 transition-colors ${iconClass}`}>
-                        {opt.id}
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+                      {currentQ.category}
+                    </span>
+                    {wrongQuestionIds.has(currentQ.id) && quizMode !== 'exam' && (
+                      <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> 曾做错
                       </span>
-                      <span className="font-medium">{opt.text}</span>
-                    </div>
-                    {/* 显示正确/错误图标 */}
-                    {showFeedback && correctAnswers.includes(opt.id) && <CheckCircle className="w-5 h-5 text-green-600" />}
-                    {showFeedback && isSelected && !correctAnswers.includes(opt.id) && <XCircle className="w-5 h-5 text-red-600" />}
-                    {!showFeedback && isSelected && <CheckCircle className="w-5 h-5 text-indigo-500" />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 多选题确认按钮 */}
-            {currentQ.type === 'multiple' && !userAnswers[currentQ.id + '_confirmed'] && (quizMode === 'practice' || quizMode === 'mistakes') && (
-              <div className="mt-4">
-                <button
-                  onClick={() => confirmMultipleChoice(currentQ.id)}
-                  disabled={!userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)}
-                  className={`w-full py-3 rounded-xl font-bold transition-all ${
-                    userAnswer && Array.isArray(userAnswer) && userAnswer.length > 0
-                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
-                >
-                  确认答案（已选择 {Array.isArray(userAnswer) ? userAnswer.length : 0} 项）
-                </button>
-              </div>
-            )}
-
-            {/* 练习模式下显示即时解析 */}
-            {userAnswer && (quizMode === 'practice' || quizMode === 'mistakes') && (
-              currentQ.type === 'single' || userAnswers[currentQ.id + '_confirmed']
-            ) && (() => {
-              // 判断答案是否正确
-              let isAnswerCorrect = false;
-              if (currentQ.type === 'multiple') {
-                const correctAnswers = currentQ.correctAnswer.split(',').map(a => a.trim()).sort();
-                const userAnswersArray = Array.isArray(userAnswer) ? userAnswer.sort() : [];
-                isAnswerCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
-              } else {
-                isAnswerCorrect = userAnswer === currentQ.correctAnswer;
-              }
-              
-              return (
-                <div className={`mt-6 p-4 rounded-xl border-2 animate-in slide-in-from-bottom-2 fade-in ${
-                  isAnswerCorrect 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-red-50 border-red-200'
-                }`}>
-                  <div className={`font-bold text-sm mb-2 flex items-center ${
-                    isAnswerCorrect ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {isAnswerCorrect ? (
-                      <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        回答正确！
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-5 h-5 mr-2" />
-                        回答错误！正确答案是：{currentQ.correctAnswer}
-                      </>
                     )}
                   </div>
-                  <div className="text-sm text-slate-700">
-                    <span className="font-bold">解析：</span>
-                    {currentQ.explanation}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openAiAnalysis(currentQ)}
+                      className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full"
+                      title="AI 智能解析本题"
+                    >
+                      <Sparkles className="w-4 h-4" /> AI 解析
+                    </button>
+                    <button
+                      onClick={() => handleFeedback(currentQ)}
+                      className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs font-medium"
+                      title="题目有误？点击反馈"
+                    >
+                      <Flag className="w-4 h-4" /> 纠错
+                    </button>
                   </div>
                 </div>
-              );
-            })()}
-          </div>
 
-          {/* 固定底部按钮栏 */}
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed mb-8">
+                  {currentQ.type === 'multiple' && (
+                    <span className="inline-block bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-lg mr-3">
+                      多选题
+                    </span>
+                  )}
+                  {currentQ.question}
+                </h2>
 
-          <div className="bg-slate-50 p-4 md:p-6 flex justify-between items-center border-t border-slate-100">
-              <button
-              onClick={() => {
-                setCurrentIndex(prev => Math.max(0, prev - 1));
-                // 切换题目时保存进度
-                if (quizMode === 'practice') {
-                  debouncedSaveProgress();
-                }
-              }}
-              disabled={currentIndex === 0}
-              className="flex items-center px-4 py-2 text-slate-600 disabled:opacity-30 hover:text-indigo-600 font-medium transition-colors"
-              >
-              <ChevronLeft className="w-5 h-5 mr-1" /> 上一题
-              </button>
+                <div className="space-y-3">
+                  {currentQ.options.map((opt) => {
+                    let containerClass = "border-slate-200 hover:bg-slate-50 text-slate-600";
+                    let iconClass = "bg-slate-100 text-slate-500";
 
-              {isLastQuestion ? (
-              <button
-                  onClick={submitQuiz}
-                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg shadow-lg shadow-green-200 transition-all transform hover:-translate-y-0.5 font-bold flex items-center"
-              >
-                  提交试卷 <CheckCircle className="w-5 h-5 ml-2" />
-              </button>
-              ) : (
-              <button
+                    // 多选题和单选题的判断逻辑
+                    const isMultiple = currentQ.type === 'multiple';
+                    const isConfirmed = userAnswers[currentQ.id + '_confirmed'];
+                    const correctAnswers = isMultiple ? currentQ.correctAnswer.split(',').map(a => a.trim()) : [currentQ.correctAnswer];
+
+                    // 判断当前选项是否被选中
+                    const isSelected = isMultiple
+                      ? (Array.isArray(userAnswer) && userAnswer.includes(opt.id))
+                      : userAnswer === opt.id;
+
+                    // 判断是否显示反馈（只在练习模式和错题本模式下显示）
+                    const showFeedback = (quizMode === 'practice' || quizMode === 'mistakes') && (
+                      isMultiple ? isConfirmed : userAnswer
+                    );
+
+                    // 如果在练习模式下已选择答案，显示正确/错误样式
+                    if (showFeedback) {
+                      if (correctAnswers.includes(opt.id)) {
+                        containerClass = "border-green-500 bg-green-50 text-green-800";
+                        iconClass = "bg-green-500 text-white";
+                      } else if (isSelected) {
+                        containerClass = "border-red-500 bg-red-50 text-red-800";
+                        iconClass = "bg-red-500 text-white";
+                      } else {
+                        containerClass = "opacity-50 border-slate-100";
+                      }
+                    } else if (isSelected) {
+                      containerClass = "border-indigo-500 bg-indigo-50 text-indigo-700";
+                      iconClass = "bg-indigo-500 text-white";
+                    }
+
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={(e) => {
+                          console.log(`[DEBUG] 按钮点击事件触发: opt.id=${opt.id}, disabled=${showFeedback}, 题型=${currentQ.type}`);
+                          e.stopPropagation();
+                          handleOptionSelect(currentQ.id, opt.id);
+                        }}
+                        disabled={showFeedback}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${containerClass} ${showFeedback ? 'cursor-default' : 'cursor-pointer'}`}
+                      >
+                        <div className="flex items-center">
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 transition-colors ${iconClass}`}>
+                            {opt.id}
+                          </span>
+                          <span className="font-medium">{opt.text}</span>
+                        </div>
+                        {/* 显示正确/错误图标 */}
+                        {showFeedback && correctAnswers.includes(opt.id) && <CheckCircle className="w-5 h-5 text-green-600" />}
+                        {showFeedback && isSelected && !correctAnswers.includes(opt.id) && <XCircle className="w-5 h-5 text-red-600" />}
+                        {!showFeedback && isSelected && <CheckCircle className="w-5 h-5 text-indigo-500" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 多选题确认按钮 */}
+                {currentQ.type === 'multiple' && !userAnswers[currentQ.id + '_confirmed'] && (quizMode === 'practice' || quizMode === 'mistakes') && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => confirmMultipleChoice(currentQ.id)}
+                      disabled={!userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)}
+                      className={`w-full py-3 rounded-xl font-bold transition-all ${userAnswer && Array.isArray(userAnswer) && userAnswer.length > 0
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        }`}
+                    >
+                      确认答案（已选择 {Array.isArray(userAnswer) ? userAnswer.length : 0} 项）
+                    </button>
+                  </div>
+                )}
+
+                {/* 练习模式下显示即时解析 */}
+                {userAnswer && (quizMode === 'practice' || quizMode === 'mistakes') && (
+                  currentQ.type === 'single' || userAnswers[currentQ.id + '_confirmed']
+                ) && (() => {
+                  // 判断答案是否正确
+                  let isAnswerCorrect = false;
+                  if (currentQ.type === 'multiple') {
+                    const correctAnswers = currentQ.correctAnswer.split(',').map(a => a.trim()).sort();
+                    const userAnswersArray = Array.isArray(userAnswer) ? userAnswer.sort() : [];
+                    isAnswerCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
+                  } else {
+                    isAnswerCorrect = userAnswer === currentQ.correctAnswer;
+                  }
+
+                  return (
+                    <div className={`mt-6 p-4 rounded-xl border-2 animate-in slide-in-from-bottom-2 fade-in ${isAnswerCorrect
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                      }`}>
+                      <div className={`font-bold text-sm mb-2 flex items-center ${isAnswerCorrect ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                        {isAnswerCorrect ? (
+                          <>
+                            <CheckCircle className="w-5 h-5 mr-2" />
+                            回答正确！
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-5 h-5 mr-2" />
+                            回答错误！正确答案是：{currentQ.correctAnswer}
+                          </>
+                        )}
+                      </div>
+                      <div className="text-sm text-slate-700">
+                        <span className="font-bold">解析：</span>
+                        {currentQ.explanation}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 固定底部按钮栏 */}
+
+              <div className="bg-slate-50 p-4 md:p-6 flex justify-between items-center border-t border-slate-100">
+                <button
                   onClick={() => {
-                    setCurrentIndex(prev => Math.min(currentQuestions.length - 1, prev + 1));
+                    setCurrentIndex(prev => Math.max(0, prev - 1));
                     // 切换题目时保存进度
                     if (quizMode === 'practice') {
                       debouncedSaveProgress();
                     }
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 font-bold flex items-center"
-              >
-                  下一题 <ChevronRight className="w-5 h-5 ml-1" />
-              </button>
-              )}
+                  disabled={currentIndex === 0}
+                  className="flex items-center px-4 py-2 text-slate-600 disabled:opacity-30 hover:text-indigo-600 font-medium transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 mr-1" /> 上一题
+                </button>
+
+                {isLastQuestion ? (
+                  <button
+                    onClick={submitQuiz}
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg shadow-lg shadow-green-200 transition-all transform hover:-translate-y-0.5 font-bold flex items-center"
+                  >
+                    提交试卷 <CheckCircle className="w-5 h-5 ml-2" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setCurrentIndex(prev => Math.min(currentQuestions.length - 1, prev + 1));
+                      // 切换题目时保存进度
+                      if (quizMode === 'practice') {
+                        debouncedSaveProgress();
+                      }
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 font-bold flex items-center"
+                  >
+                    下一题 <ChevronRight className="w-5 h-5 ml-1" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        
+
           {/* 右侧答题卡 - 仅顺序练习和模拟考显示 */}
           {(quizMode === 'practice' || quizMode === 'exam') && (
             <div className="w-80 hidden lg:block shrink-0">
@@ -1396,73 +1372,73 @@ export default function App() {
   };
 
   const ResultView = () => {
-      const { score, correctCount, total, wrongCount } = resultStats;
-      return (
-        <div className="max-w-4xl mx-auto w-full pb-12">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
-            <div className="bg-slate-800 p-8 text-center text-white">
-              <h2 className="text-2xl font-bold mb-2">{quizMode === 'mistakes' ? '错题复习完成' : '考试结束'}</h2>
-              <div className="flex justify-center items-center my-6">
-                  <div className="text-5xl font-bold text-indigo-400">{score}<span className="text-xl text-slate-400">分</span></div>
-              </div>
-              {quizMode === 'mistakes' && (<p className="text-indigo-200">答对的题目已自动移出错题本</p>)}
+    const { score, correctCount, total, wrongCount } = resultStats;
+    return (
+      <div className="max-w-4xl mx-auto w-full pb-12">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+          <div className="bg-slate-800 p-8 text-center text-white">
+            <h2 className="text-2xl font-bold mb-2">{quizMode === 'mistakes' ? '错题复习完成' : '考试结束'}</h2>
+            <div className="flex justify-center items-center my-6">
+              <div className="text-5xl font-bold text-indigo-400">{score}<span className="text-xl text-slate-400">分</span></div>
             </div>
-            <div className="grid grid-cols-3 border-b border-slate-100 divide-x divide-slate-100">
-              <div className="p-4 text-center"><span className="block text-slate-400 text-xs">总题数</span><span className="text-xl font-bold text-slate-800">{total}</span></div>
-              <div className="p-4 text-center bg-green-50"><span className="block text-green-600 text-xs">正确</span><span className="text-xl font-bold text-green-700">{correctCount}</span></div>
-              <div className="p-4 text-center bg-red-50"><span className="block text-red-600 text-xs">错误</span><span className="text-xl font-bold text-red-700">{wrongCount}</span></div>
-            </div>
-            <div className="p-6 bg-slate-50 flex justify-center">
-               <button onClick={() => setAppState('welcome')} className="flex items-center bg-slate-800 text-white px-8 py-3 rounded-full hover:bg-slate-700 transition font-medium">
-                <RotateCcw className="w-5 h-5 mr-2" /> 返回首页
-              </button>
-            </div>
+            {quizMode === 'mistakes' && (<p className="text-indigo-200">答对的题目已自动移出错题本</p>)}
           </div>
-          
-          <div className="space-y-4">
-             {currentQuestions.map((q, index) => {
-                 const userAns = userAnswers[q.id];
-                 
-                 // 判断答案是否正确
-                 let isCorrect = false;
-                 if (q.type === 'multiple') {
-                   const correctAnswers = q.correctAnswer.split(',').map(a => a.trim()).sort();
-                   const userAnswersArray = Array.isArray(userAns) ? userAns.sort() : [];
-                   isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
-                 } else {
-                   isCorrect = userAns === q.correctAnswer;
-                 }
-                 
-                 // 格式化用户答案显示
-                 const userAnsDisplay = Array.isArray(userAns) ? userAns.join(', ') : (userAns || '未选');
-                 
-                 return (
-                     <div key={q.id} className={`bg-white rounded-xl p-6 shadow-sm border-l-4 ${isCorrect ? 'border-green-500' : 'border-red-500'}`}>
-                        <div className="flex justify-between mb-2">
-                            <span className="font-bold text-slate-800">
-                              #{index+1} 
-                              {q.type === 'multiple' && <span className="text-blue-600 text-xs ml-2">[多选]</span>}
-                              {' '}{q.question}
-                            </span>
-                            {isCorrect ? <span className="text-green-600 text-sm font-bold">✓ 正确</span> : <span className="text-red-600 text-sm font-bold">✗ 错误</span>}
-                        </div>
-                        <div className="text-sm text-slate-500 mb-2">
-                          你的答案: <span className="font-medium">{userAnsDisplay}</span> | 
-                          正确答案: <span className="font-medium">{q.correctAnswer}</span>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 flex justify-between items-start">
-                          <div>{q.explanation}</div>
-                          <div className="flex items-center gap-1 ml-4">
-                            <button onClick={() => openAiAnalysis(q)} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="AI 解析"><Sparkles className="w-4 h-4" /></button>
-                            <button onClick={() => handleFeedback(q)} className="text-slate-400 hover:text-orange-500 transition-colors"><Flag className="w-4 h-4" /></button>
-                          </div>
-                        </div>
-                     </div>
-                 )
-             })}
+          <div className="grid grid-cols-3 border-b border-slate-100 divide-x divide-slate-100">
+            <div className="p-4 text-center"><span className="block text-slate-400 text-xs">总题数</span><span className="text-xl font-bold text-slate-800">{total}</span></div>
+            <div className="p-4 text-center bg-green-50"><span className="block text-green-600 text-xs">正确</span><span className="text-xl font-bold text-green-700">{correctCount}</span></div>
+            <div className="p-4 text-center bg-red-50"><span className="block text-red-600 text-xs">错误</span><span className="text-xl font-bold text-red-700">{wrongCount}</span></div>
+          </div>
+          <div className="p-6 bg-slate-50 flex justify-center">
+            <button onClick={() => setAppState('welcome')} className="flex items-center bg-slate-800 text-white px-8 py-3 rounded-full hover:bg-slate-700 transition font-medium">
+              <RotateCcw className="w-5 h-5 mr-2" /> 返回首页
+            </button>
           </div>
         </div>
-      )
+
+        <div className="space-y-4">
+          {currentQuestions.map((q, index) => {
+            const userAns = userAnswers[q.id];
+
+            // 判断答案是否正确
+            let isCorrect = false;
+            if (q.type === 'multiple') {
+              const correctAnswers = q.correctAnswer.split(',').map(a => a.trim()).sort();
+              const userAnswersArray = Array.isArray(userAns) ? userAns.sort() : [];
+              isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userAnswersArray);
+            } else {
+              isCorrect = userAns === q.correctAnswer;
+            }
+
+            // 格式化用户答案显示
+            const userAnsDisplay = Array.isArray(userAns) ? userAns.join(', ') : (userAns || '未选');
+
+            return (
+              <div key={q.id} className={`bg-white rounded-xl p-6 shadow-sm border-l-4 ${isCorrect ? 'border-green-500' : 'border-red-500'}`}>
+                <div className="flex justify-between mb-2">
+                  <span className="font-bold text-slate-800">
+                    #{index + 1}
+                    {q.type === 'multiple' && <span className="text-blue-600 text-xs ml-2">[多选]</span>}
+                    {' '}{q.question}
+                  </span>
+                  {isCorrect ? <span className="text-green-600 text-sm font-bold">✓ 正确</span> : <span className="text-red-600 text-sm font-bold">✗ 错误</span>}
+                </div>
+                <div className="text-sm text-slate-500 mb-2">
+                  你的答案: <span className="font-medium">{userAnsDisplay}</span> |
+                  正确答案: <span className="font-medium">{q.correctAnswer}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 flex justify-between items-start">
+                  <div>{q.explanation}</div>
+                  <div className="flex items-center gap-1 ml-4">
+                    <button onClick={() => openAiAnalysis(q)} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="AI 解析"><Sparkles className="w-4 h-4" /></button>
+                    <button onClick={() => handleFeedback(q)} className="text-slate-400 hover:text-orange-500 transition-colors"><Flag className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -1483,14 +1459,14 @@ export default function App() {
               />
               <span className="font-bold text-base sm:text-xl tracking-tight text-slate-800 whitespace-nowrap">物联网安调题库</span>
             </div>
-            
+
           </div>
-          
+
           {/* 右侧区域 */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="hidden sm:flex items-center bg-slate-100 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 border border-slate-200">
-                <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
-                <span className="whitespace-nowrap">累计刷题: <span className="text-indigo-600 font-bold">{answeredIds.size}</span> / {MOCK_QUESTION_BANK.length}</span>
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+              <span className="whitespace-nowrap">累计刷题: <span className="text-indigo-600 font-bold">{answeredIds.size}</span> / {MOCK_QUESTION_BANK.length}</span>
             </div>
 
             {/* 导出按钮 */}
@@ -1500,9 +1476,9 @@ export default function App() {
             <MaintenanceNotification />
 
             {appState === 'quiz' && (
-                <button onClick={exitQuiz} className="text-sm text-slate-500 hover:text-red-600 font-medium transition-colors whitespace-nowrap">
+              <button onClick={exitQuiz} className="text-sm text-slate-500 hover:text-red-600 font-medium transition-colors whitespace-nowrap">
                 退出
-                </button>
+              </button>
             )}
           </div>
         </div>
@@ -1517,10 +1493,10 @@ export default function App() {
         {appState === 'result' && <ResultView />}
         {/* 移除登录系统：不再需要登录、个人资料和管理面板页面 */}
       </main>
-      
-      <a 
+
+      <a
         href="https://github.com/Awfp1314"
-        target="_blank" 
+        target="_blank"
         rel="noreferrer"
         className="fixed bottom-16 sm:bottom-4 left-2 sm:left-4 z-50 flex items-center space-x-2 bg-white/90 backdrop-blur border border-slate-200 px-2 sm:px-3 py-1.5 rounded-full shadow-sm hover:shadow-md hover:border-indigo-300 transition-all group"
       >
@@ -1528,7 +1504,7 @@ export default function App() {
         <span className="text-xs font-medium text-slate-500 group-hover:text-indigo-600 transition-colors hidden sm:inline">GitHub Project</span>
       </a>
 
-      <button 
+      <button
         onClick={copyQQNumber}
         className="fixed bottom-16 sm:bottom-4 right-2 sm:right-4 z-50 flex items-center space-x-2 bg-white/90 backdrop-blur border border-slate-200 px-2 sm:px-3 py-1.5 rounded-full shadow-sm hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer"
       >
@@ -1545,116 +1521,116 @@ export default function App() {
 
       {showInstantModal && instantQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-            <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 flex justify-between items-center text-white shrink-0">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                 <Zap className={`w-6 h-6 ${isRolling ? 'animate-pulse' : ''}`} />
                 <span className="font-bold text-lg">闪电刷题</span>
-                </div>
-                <button onClick={closeInstantModal} className="text-white/80 hover:text-white transition-colors bg-white/10 rounded-full p-1">
+              </div>
+              <button onClick={closeInstantModal} className="text-white/80 hover:text-white transition-colors bg-white/10 rounded-full p-1">
                 <X className="w-5 h-5" />
-                </button>
+              </button>
             </div>
 
             <div ref={modalContentRef} className="p-6 overflow-y-auto">
-                {isRolling ? (
+              {isRolling ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-6 text-center">
-                    <div className="relative">
+                  <div className="relative">
                     <Sparkles className="w-16 h-16 text-orange-500 animate-spin-slow" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Shuffle className="w-8 h-8 text-orange-600 animate-bounce" />
+                      <Shuffle className="w-8 h-8 text-orange-600 animate-bounce" />
                     </div>
-                    </div>
-                    <div className="space-y-1">
+                  </div>
+                  <div className="space-y-1">
                     <h3 className="text-xl font-bold text-slate-700">正在抽取题目...</h3>
                     <p className="text-slate-400 text-sm font-mono">{instantQuestion.category}</p>
                     <p className="text-slate-300 text-xs">随机题库编号 #{instantQuestion.id}</p>
-                    </div>
+                  </div>
                 </div>
-                ) : (
+              ) : (
                 <>
-                    <div className="mb-6">
-                     <div className="flex items-center gap-2 mb-4">
-                       <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">{instantQuestion.category}</span>
-                       {wrongQuestionIds.has(instantQuestion.id) && (
-                         <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center"><AlertTriangle className="w-3 h-3 mr-1"/> 曾做错</span>
-                       )}
-                       <button
-                         onClick={() => openAiAnalysis(instantQuestion)}
-                         className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ml-auto"
-                         title="AI 智能解析本题"
-                       >
-                         <Sparkles className="w-3.5 h-3.5" /> AI 解析
-                       </button>
-                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 leading-relaxed">{instantQuestion.question}</h3>
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">{instantQuestion.category}</span>
+                      {wrongQuestionIds.has(instantQuestion.id) && (
+                        <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center"><AlertTriangle className="w-3 h-3 mr-1" /> 曾做错</span>
+                      )}
+                      <button
+                        onClick={() => openAiAnalysis(instantQuestion)}
+                        className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ml-auto"
+                        title="AI 智能解析本题"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> AI 解析
+                      </button>
                     </div>
+                    <h3 className="text-xl font-bold text-slate-800 leading-relaxed">{instantQuestion.question}</h3>
+                  </div>
 
-                    <div className="space-y-3 mb-6">
+                  <div className="space-y-3 mb-6">
                     {instantQuestion.options.map((opt) => {
-                        let containerClass = "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer";
-                        let iconClass = "bg-slate-100 text-slate-500";
+                      let containerClass = "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer";
+                      let iconClass = "bg-slate-100 text-slate-500";
 
-                        if (showInstantResult) {
+                      if (showInstantResult) {
                         if (opt.id === instantQuestion.correctAnswer) {
-                            containerClass = "bg-green-50 border-green-500 text-green-800";
-                            iconClass = "bg-green-500 text-white";
+                          containerClass = "bg-green-50 border-green-500 text-green-800";
+                          iconClass = "bg-green-500 text-white";
                         } else if (instantUserAnswer === opt.id) {
-                            containerClass = "bg-red-50 border-red-500 text-red-800";
-                            iconClass = "bg-red-500 text-white";
+                          containerClass = "bg-red-50 border-red-500 text-red-800";
+                          iconClass = "bg-red-500 text-white";
                         } else {
-                            containerClass = "opacity-40 border-slate-100 cursor-default";
+                          containerClass = "opacity-40 border-slate-100 cursor-default";
                         }
-                        } else {
+                      } else {
                         containerClass += " hover:border-orange-400 hover:bg-orange-50";
-                        }
+                      }
 
-                        return (
+                      return (
                         <div
-                            key={opt.id}
-                            onClick={() => handleInstantSelect(opt.id)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${containerClass}`}
+                          key={opt.id}
+                          onClick={() => handleInstantSelect(opt.id)}
+                          className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${containerClass}`}
                         >
-                            <div className="flex items-center">
+                          <div className="flex items-center">
                             <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 transition-colors ${iconClass}`}>
-                                {opt.id}
+                              {opt.id}
                             </span>
                             <span className="font-medium">{opt.text}</span>
-                            </div>
-                            {showInstantResult && opt.id === instantQuestion.correctAnswer && <CheckCircle className="w-5 h-5 text-green-600" />}
-                            {showInstantResult && instantUserAnswer === opt.id && instantUserAnswer !== instantQuestion.correctAnswer && <XCircle className="w-5 h-5 text-red-600" />}
+                          </div>
+                          {showInstantResult && opt.id === instantQuestion.correctAnswer && <CheckCircle className="w-5 h-5 text-green-600" />}
+                          {showInstantResult && instantUserAnswer === opt.id && instantUserAnswer !== instantQuestion.correctAnswer && <XCircle className="w-5 h-5 text-red-600" />}
                         </div>
-                        );
+                      );
                     })}
-                    </div>
+                  </div>
 
-                    {showInstantResult && (
+                  {showInstantResult && (
                     <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 animate-in slide-in-from-bottom-2 fade-in">
-                        <div className={`font-bold mb-1 flex items-center ${instantUserAnswer === instantQuestion.correctAnswer ? 'text-green-600' : 'text-red-600'}`}>
-                            {instantUserAnswer === instantQuestion.correctAnswer ? '回答正确！' : '回答错误'}
-                        </div>
-                        <div className="text-slate-600 text-sm">
+                      <div className={`font-bold mb-1 flex items-center ${instantUserAnswer === instantQuestion.correctAnswer ? 'text-green-600' : 'text-red-600'}`}>
+                        {instantUserAnswer === instantQuestion.correctAnswer ? '回答正确！' : '回答错误'}
+                      </div>
+                      <div className="text-slate-600 text-sm">
                         <span className="font-bold text-slate-800">解析：</span>
                         {instantQuestion.explanation}
-                        </div>
+                      </div>
                     </div>
-                    )}
+                  )}
                 </>
-                )}
+              )}
             </div>
 
             {!isRolling && showInstantResult && (
-                <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-end shrink-0">
-                <button 
-                    onClick={startRolling}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-lg shadow-md font-bold flex items-center transition-transform transform active:scale-95"
+              <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-end shrink-0">
+                <button
+                  onClick={startRolling}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-lg shadow-md font-bold flex items-center transition-transform transform active:scale-95"
                 >
-                    <RotateCcw className="w-4 h-4 mr-2" /> 再抽一题
+                  <RotateCcw className="w-4 h-4 mr-2" /> 再抽一题
                 </button>
-                </div>
+              </div>
             )}
-            </div>
+          </div>
         </div>
       )}
 
