@@ -294,6 +294,11 @@ export default function App() {
   // 全局警告弹窗状态
   const [globalWarning, setGlobalWarning] = useState(null);
 
+  // AI 解析弹窗相关状态
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiQuestionText, setAiQuestionText] = useState('');
+  const [aiQuestionTitle, setAiQuestionTitle] = useState('');
+
   // 题库状态（从数据库加载）
   const [MOCK_QUESTION_BANK, setMOCK_QUESTION_BANK] = useState(DEFAULT_QUESTION_BANK);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -849,6 +854,35 @@ export default function App() {
     };
   }, [answeredIds, wrongQuestionIds]);
 
+  // --- AI 解析功能 ---
+  const openAiAnalysis = (question) => {
+    const title = question.question;
+    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
+    setAiQuestionTitle(title);
+    setAiQuestionText(text);
+    setShowAiModal(true);
+  };
+
+  const closeAiModal = () => {
+    setShowAiModal(false);
+    setAiQuestionText('');
+    setAiQuestionTitle('');
+  };
+
+  const copyAiQuestion = () => {
+    navigator.clipboard.writeText(aiQuestionText).then(() => {
+    }).catch(() => {
+      const textarea = document.createElement('textarea');
+      textarea.value = aiQuestionText;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    });
+  };
+
   // --- 组件视图 ---
 
   const WelcomeView = () => (
@@ -1012,13 +1046,22 @@ export default function App() {
                      </span>
                  )}
                </div>
-               <button 
-                 onClick={() => handleFeedback(currentQ)}
-                 className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs font-medium"
-                 title="题目有误？点击反馈"
-               >
-                 <Flag className="w-4 h-4" /> 纠错
-               </button>
+               <div className="flex items-center gap-2">
+                 <button 
+                   onClick={() => openAiAnalysis(currentQ)}
+                   className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full"
+                   title="AI 智能解析本题"
+                 >
+                   <Sparkles className="w-4 h-4" /> AI 解析
+                 </button>
+                 <button 
+                   onClick={() => handleFeedback(currentQ)}
+                   className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs font-medium"
+                   title="题目有误？点击反馈"
+                 >
+                   <Flag className="w-4 h-4" /> 纠错
+                 </button>
+               </div>
             </div>
             
             <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed mb-8">
@@ -1269,7 +1312,10 @@ export default function App() {
                         </div>
                         <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 flex justify-between items-start">
                           <div>{q.explanation}</div>
-                          <button onClick={() => handleFeedback(q)} className="ml-4 text-slate-400 hover:text-orange-500 transition-colors"><Flag className="w-4 h-4" /></button>
+                          <div className="flex items-center gap-1 ml-4">
+                            <button onClick={() => openAiAnalysis(q)} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="AI 解析"><Sparkles className="w-4 h-4" /></button>
+                            <button onClick={() => handleFeedback(q)} className="text-slate-400 hover:text-orange-500 transition-colors"><Flag className="w-4 h-4" /></button>
+                          </div>
                         </div>
                      </div>
                  )
@@ -1389,12 +1435,19 @@ export default function App() {
                 ) : (
                 <>
                     <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">{instantQuestion.category}</span>
-                        {wrongQuestionIds.has(instantQuestion.id) && (
-                        <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center"><AlertTriangle className="w-3 h-3 mr-1"/> 曾做错</span>
-                        )}
-                    </div>
+                     <div className="flex items-center gap-2 mb-4">
+                       <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">{instantQuestion.category}</span>
+                       {wrongQuestionIds.has(instantQuestion.id) && (
+                         <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center"><AlertTriangle className="w-3 h-3 mr-1"/> 曾做错</span>
+                       )}
+                       <button
+                         onClick={() => openAiAnalysis(instantQuestion)}
+                         className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ml-auto"
+                         title="AI 智能解析本题"
+                       >
+                         <Sparkles className="w-3.5 h-3.5" /> AI 解析
+                       </button>
+                     </div>
                     <h3 className="text-xl font-bold text-slate-800 leading-relaxed">{instantQuestion.question}</h3>
                     </div>
 
@@ -1521,6 +1574,58 @@ export default function App() {
               >
                 我知道了
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI 解析弹窗 */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeAiModal}>
+          <div className="bg-white w-full max-w-3xl mx-4 rounded-2xl shadow-2xl overflow-hidden ai-modal-enter max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 flex justify-between items-center text-white shrink-0">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-6 h-6" />
+                <span className="font-bold text-lg">AI 智能解析</span>
+              </div>
+              <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 rounded-full p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-indigo-50 border-b border-indigo-100 shrink-0">
+              <p className="text-sm text-slate-700 font-medium line-clamp-2" title={aiQuestionTitle}>{aiQuestionTitle}</p>
+              <button
+                onClick={copyAiQuestion}
+                className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 bg-white px-3 py-1.5 rounded-full border border-indigo-200 hover:bg-indigo-100 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+                复制题目文本
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0">
+              <iframe
+                src="https://udify.app/chatbot/xg0maoDg7kzrcGT0"
+                style={{ width: '100%', height: '100%', minHeight: '420px', border: 'none' }}
+                title="AI 解析助手"
+                onLoad={(e) => {
+                  setTimeout(() => {
+                    try {
+                      e.target.contentWindow.postMessage({
+                        type: 'dify-chatbot-send',
+                        data: {
+                          query: aiQuestionText,
+                          inputs: {}
+                        }
+                      }, 'https://udify.app');
+                    } catch (err) {}
+                  }, 800);
+                }}
+              />
             </div>
           </div>
         </div>
