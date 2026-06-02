@@ -23,45 +23,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      window.difyChatbotConfig = {
-        token: 'xg0maoDg7kzrcGT0',
-        isToggledByButton: true
-      }
-    </script>
-    <script src="https://udify.app/embed.min.js" id="xg0maoDg7kzrcGT0" defer></script>
-    <script>
-      (function() {
-        var expanded = false;
-        window.addEventListener('message', function(event) {
-          if (event.origin !== 'https://udify.app') return;
-          if (event.data && event.data.type === 'dify-chatbot-expand-change') {
-            expanded = event.data.payload && event.data.payload.expanded;
-            var win = document.getElementById('dify-chatbot-bubble-window');
-            if (!win) return;
-            if (expanded) {
-              win.classList.add('dify-centered');
-            } else {
-              win.classList.remove('dify-centered');
-            }
-          }
-        });
 
-        function trySendConfig() {
-          var iframe = document.querySelector('#dify-chatbot-bubble-window iframe');
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-              type: 'dify-chatbot-config',
-              payload: { isToggledByButton: true, isDraggable: false }
-            }, 'https://udify.app');
-          }
-        }
-
-        var observer = new MutationObserver(function() {
-          trySendConfig();
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-      })();
-    </script>
   </body>
 </html>

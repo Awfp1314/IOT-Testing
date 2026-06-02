@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu, Zap, Layers, BarChart3, AlertTriangle, CalendarClock, Github, Flag, Mail, X, Sparkles, Shuffle, User, BookOpen, Send } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, ChevronRight, ChevronLeft, RotateCcw, Cpu, Zap, Layers, BarChart3, AlertTriangle, CalendarClock, Github, Flag, Mail, X, Sparkles, Shuffle, User, BookOpen } from 'lucide-react';
 import { QUESTION_BANK } from './questionBank.js';
 
-// Dify API 配置 - 请在 Dify 后台 "API 访问" 中生成密钥后替换
-const DIFY_API_KEY = 'app-HF8Fob2lBsnmBxPn6qyipext'; // 填入形如 app-xxxx 的密钥启用自动发送
-const DIFY_API_BASE = 'https://udify.app/v1';
 // 移除登录系统：不再需要LoginView和ProfileView
 import { ExportMenu } from './MenuComponents.jsx';
 import { NotificationMenu } from './NotificationComponent.jsx';
@@ -296,16 +293,6 @@ export default function App() {
 
   // 全局警告弹窗状态
   const [globalWarning, setGlobalWarning] = useState(null);
-
-  // AI 全屏弹窗状态
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiQuestionText, setAiQuestionText] = useState('');
-  const [aiIframeUrl, setAiIframeUrl] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiConversationId, setAiConversationId] = useState(''); // 保存会话 ID
-  const iframeRef = useRef(null);
-  const aiAbortRef = useRef(null);
 
   // 题库状态（从数据库加载）
   const [MOCK_QUESTION_BANK, setMOCK_QUESTION_BANK] = useState(DEFAULT_QUESTION_BANK);
@@ -862,161 +849,6 @@ export default function App() {
     };
   }, [answeredIds, wrongQuestionIds]);
 
-  // --- AI 解析功能 ---
-  const callDifyApi = useCallback(async (queryText, signal, conversationId = '') => {
-    if (!DIFY_API_KEY) {
-      throw new Error('NO_API_KEY');
-    }
-
-    // 使用正确的 API 端点和参数格式（根据 Dify 文档）
-    const resp = await fetch(`${DIFY_API_BASE}/chat-messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DIFY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: {},
-        query: queryText,
-        response_mode: 'streaming',
-        conversation_id: conversationId || '', // 使用传入的会话 ID
-        user: `user-${Date.now()}`, // 用户标识
-      }),
-      signal,
-    });
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => '');
-      console.error(`[AI] API 错误 ${resp.status}:`, errText);
-      throw new Error(`API_${resp.status}`);
-    }
-
-    return resp;
-  }, []);
-
-  const parseSSEStream = useCallback(async (response, onChunk, onConversationId, signal) => {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      if (signal.aborted) { reader.cancel(); break; }
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        try {
-          const json = JSON.parse(line.slice(6));
-
-          // 提取会话 ID
-          if (json.conversation_id && onConversationId) {
-            onConversationId(json.conversation_id);
-          }
-
-          if (json.event === 'message') {
-            onChunk(json.answer || '');
-          } else if (json.event === 'message_end') {
-            return;
-          } else if (json.event === 'error') {
-            console.warn('[AI] SSE错误事件:', json.message || json);
-            throw new Error('SSE_ERROR');
-          }
-        } catch (e) {
-          if (e.message === 'SSE_ERROR') throw e;
-        }
-      }
-    }
-  }, []);
-
-  const compressAndEncode = useCallback(async (input) => {
-    try {
-      const uint8Array = new TextEncoder().encode(input);
-      const compressedStream = new Response(
-        new Blob([uint8Array]).stream().pipeThrough(new CompressionStream("gzip"))
-      ).arrayBuffer();
-      const compressedUint8Array = new Uint8Array(await compressedStream);
-      let binary = '';
-      compressedUint8Array.forEach(b => binary += String.fromCharCode(b));
-      return btoa(binary);
-    } catch (e) {
-      return encodeURIComponent(input);
-    }
-  }, []);
-
-  const openAiAnalysis = useCallback(async (question) => {
-    const text = `请帮我解析以下物联网题目：\n\n【题目】${question.question}\n\n【选项】\n${question.options.map((o) => `${o.id}. ${o.text}`).join('\n')}\n\n请给出正确答案并详细解析。`;
-    setAiQuestionText(text);
-    setAiResponse('');
-    setAiLoading(false);
-    setShowAiModal(true);
-
-    // 添加时间戳参数，确保每次都是新会话，避免加载旧的 conversation_id
-    const timestamp = Date.now();
-    setAiIframeUrl(`https://udify.app/chatbot/xg0maoDg7kzrcGT0?t=${timestamp}`);
-  }, []);
-
-  const closeAiModal = useCallback(() => {
-    if (aiAbortRef.current) aiAbortRef.current.abort();
-    setShowAiModal(false);
-    setAiQuestionText('');
-    setAiIframeUrl('');
-    setAiResponse('');
-    setAiConversationId(''); // 清除会话 ID
-    setAiLoading(false);
-  }, []);
-
-  const copyAiQuestion = useCallback(() => {
-    if (!aiQuestionText) return;
-    navigator.clipboard.writeText(aiQuestionText).catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = aiQuestionText;
-      ta.style.cssText = 'position:fixed;opacity:0;';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    });
-  }, [aiQuestionText]);
-
-  const aiSendFollowUp = useCallback(async (followUpText) => {
-    if (!followUpText.trim()) return;
-    setAiQuestionText(followUpText);
-    setAiResponse('');
-    setAiLoading(true);
-
-    const controller = new AbortController();
-    aiAbortRef.current = controller;
-
-    try {
-      // 使用当前会话 ID 进行追问
-      const resp = await callDifyApi(followUpText, controller.signal, aiConversationId);
-      let full = '';
-      await parseSSEStream(
-        resp,
-        (chunk) => {
-          full += chunk;
-          setAiResponse(full);
-        },
-        (convId) => {
-          // 更新会话 ID（通常不变，但保险起见）
-          if (convId) setAiConversationId(convId);
-        },
-        controller.signal
-      );
-    } catch (e) {
-      setAiResponse(prev => prev + '\n\n[请求失败，请重试]');
-    } finally {
-      if (!controller.signal.aborted) {
-        setAiLoading(false);
-      }
-    }
-  }, [callDifyApi, parseSSEStream, aiConversationId]);
-
   // --- 组件视图 ---
 
   const WelcomeView = () => (
@@ -1179,22 +1011,6 @@ export default function App() {
                         <AlertTriangle className="w-3 h-3 mr-1" /> 曾做错
                       </span>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openAiAnalysis(currentQ)}
-                      className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full"
-                      title="AI 智能解析本题"
-                    >
-                      <Sparkles className="w-4 h-4" /> AI 解析
-                    </button>
-                    <button
-                      onClick={() => handleFeedback(currentQ)}
-                      className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs font-medium"
-                      title="题目有误？点击反馈"
-                    >
-                      <Flag className="w-4 h-4" /> 纠错
-                    </button>
                   </div>
                 </div>
 
@@ -1441,12 +1257,8 @@ export default function App() {
                   你的答案: <span className="font-medium">{userAnsDisplay}</span> |
                   正确答案: <span className="font-medium">{q.correctAnswer}</span>
                 </div>
-                <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 flex justify-between items-start">
+                <div className="bg-slate-50 p-3 rounded text-sm text-slate-600">
                   <div>{q.explanation}</div>
-                  <div className="flex items-center gap-1 ml-4">
-                    <button onClick={() => openAiAnalysis(q)} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="AI 解析"><Sparkles className="w-4 h-4" /></button>
-                    <button onClick={() => handleFeedback(q)} className="text-slate-400 hover:text-orange-500 transition-colors"><Flag className="w-4 h-4" /></button>
-                  </div>
                 </div>
               </div>
             )
@@ -1571,13 +1383,6 @@ export default function App() {
                       {wrongQuestionIds.has(instantQuestion.id) && (
                         <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded flex items-center"><AlertTriangle className="w-3 h-3 mr-1" /> 曾做错</span>
                       )}
-                      <button
-                        onClick={() => openAiAnalysis(instantQuestion)}
-                        className="ai-btn-glow text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ml-auto"
-                        title="AI 智能解析本题"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" /> AI 解析
-                      </button>
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 leading-relaxed">{instantQuestion.question}</h3>
                   </div>
@@ -1710,143 +1515,6 @@ export default function App() {
         </div>
       )}
 
-      {/* AI 全屏解析弹窗 */}
-      {showAiModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/65 backdrop-blur-sm" onClick={closeAiModal}>
-          <div
-            className="bg-white w-[95vw] h-[93vh] max-w-[1100px] max-h-[860px] rounded-2xl shadow-2xl overflow-hidden ai-modal-enter flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
-              <div className="flex items-center space-x-2.5">
-                <Sparkles className="w-5 h-5" />
-                <span className="font-bold text-base">AI 智能解析</span>
-              </div>
-              <button onClick={closeAiModal} className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 min-h-0 bg-white relative flex flex-col">
-              {aiIframeUrl ? (
-                <>
-                  {/* 题目提示区域 */}
-                  <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 shrink-0">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-amber-800 mb-1">请将以下题目复制到聊天框中：</p>
-                        <div className="bg-white rounded-lg p-3 text-xs text-slate-700 whitespace-pre-wrap break-words border border-amber-200 max-h-32 overflow-y-auto">
-                          {aiQuestionText}
-                        </div>
-                        <button
-                          onClick={copyAiQuestion}
-                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-md transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                          </svg>
-                          复制题目
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* iframe 区域 */}
-                  <div className="flex-1 min-h-0">
-                    <iframe
-                      ref={iframeRef}
-                      src={aiIframeUrl}
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                      title="AI 解析助手"
-                      allow="microphone"
-                      key={aiIframeUrl}
-                    />
-                  </div>
-                </>
-              ) : aiLoading && !aiResponse ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
-                  <p className="text-slate-500 text-sm">AI 正在分析题目...</p>
-                </div>
-              ) : aiResponse ? (
-                <div className="flex flex-col h-full">
-                  <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-slate-700 leading-relaxed">
-                      {aiResponse}
-                    </div>
-                  </div>
-                  {aiLoading && (
-                    <div className="px-6 py-2 text-xs text-indigo-500 animate-pulse">AI 正在输入...</div>
-                  )}
-                  <div className="border-t border-slate-200 p-4 shrink-0">
-                    <FollowUpInput onSend={aiSendFollowUp} disabled={aiLoading} />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                  <p>加载失败，请重试</p>
-                  <button onClick={closeAiModal} className="mt-3 text-indigo-500 hover:underline text-sm">关闭</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FileCode(props) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-      <path d="m10 13-2 2 2 2" />
-      <path d="m14 17 2-2-2-2" />
-    </svg>
-  )
-}
-
-function FollowUpInput({ onSend, disabled }) {
-  const [value, setValue] = useState('');
-
-  const handleSend = () => {
-    if (disabled || !value.trim()) return;
-    onSend(value);
-    setValue('');
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  return (
-    <div className="flex items-end gap-2">
-      <textarea
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="继续追问..."
-        rows={1}
-        disabled={disabled}
-        className="flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400"
-      />
-      <button
-        onClick={handleSend}
-        disabled={disabled || !value.trim()}
-        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-      >
-        <Send className="w-4 h-4" />
-      </button>
     </div>
   );
 }
